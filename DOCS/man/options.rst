@@ -1645,8 +1645,8 @@ Video
     the number of packets that could not be decoded. Values below an unspecified
     count will not have this problem, because mpv retains the packets.
 
-``--vd-lavc-dr=<yes|no>``
-    Enable direct rendering (default: yes). If this is set to ``yes``, the
+``--vd-lavc-dr=<auto|yes|no>``
+    Enable direct rendering (default: auto). If this is set to ``yes``, the
     video will be decoded directly to GPU video memory (or staging buffers).
     This can speed up video upload, and may help with large resolutions or
     slow hardware. This works only with the following VOs:

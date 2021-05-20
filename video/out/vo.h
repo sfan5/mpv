@@ -122,6 +122,10 @@ enum mp_voctrl {
     VOCTRL_GET_HIDPI_SCALE,             // double*
     VOCTRL_GET_DISPLAY_RES,             // int[2]
 
+    // Return false if VO is reasonably sure that DR would be bad for
+    // performance even if it works.
+    VOCTRL_GET_WANTS_DR,                // bool*
+
     /* private to vo_gpu */
     VOCTRL_EXTERNAL_RESIZE,
 };

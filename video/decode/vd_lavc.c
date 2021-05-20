@@ -116,7 +116,8 @@ const struct m_sub_options vd_lavc_conf = {
         {"vd-lavc-software-fallback", OPT_CHOICE(software_fallback,
             {"no", INT_MAX}, {"yes", 1}), M_RANGE(1, INT_MAX)},
         {"vd-lavc-o", OPT_KEYVALUELIST(avopts)},
-        {"vd-lavc-dr", OPT_FLAG(dr)},
+        {"vd-lavc-dr", OPT_CHOICE(dr,
+            {"auto", -1}, {"no", 0}, {"yes", 1})},
         {"hwdec", OPT_STRING(hwdec_api),
             .help = hwdec_opt_help,
             .flags = M_OPT_OPTIONAL_PARAM | UPDATE_HWDEC},
@@ -134,7 +135,7 @@ const struct m_sub_options vd_lavc_conf = {
         .skip_idct = AVDISCARD_DEFAULT,
         .skip_frame = AVDISCARD_DEFAULT,
         .framedrop = AVDISCARD_NONREF,
-        .dr = 1,
+        .dr = -1,
         .hwdec_api = "no",
         .hwdec_codecs = "h264,vc1,hevc,vp8,vp9,av1",
         // Maximum number of surfaces the player wants to buffer. This number
@@ -654,6 +655,13 @@ static void init_avctx(struct mp_filter *vd)
         ctx->hw_probing = true;
     } else {
         mp_set_avcodec_threads(vd->log, avctx, lavc_param->threads);
+    }
+
+    if (lavc_param->dr == -1) {
+        bool wants_dr = false;
+        if (ctx->vo)
+            vo_control(ctx->vo, VOCTRL_GET_WANTS_DR, &wants_dr);
+        lavc_param->dr = !!wants_dr ? 1 : 0;
     }
 
     if (!ctx->use_hwdec && ctx->vo && lavc_param->dr) {

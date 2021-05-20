@@ -226,6 +226,9 @@ static int control(struct vo *vo, uint32_t request, void *data)
         p->ctx->fns->reconfig(p->ctx);
         resize(vo);
         return true;
+    case VOCTRL_GET_WANTS_DR:
+        *(bool*) data = !(p->ctx->ra->caps & RA_CAP_SLOW_DR);
+        return true;
     }
 
     int events = 0;

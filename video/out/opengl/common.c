@@ -47,6 +47,27 @@ static bool is_software_gl(GL *gl)
            strcmp(renderer, "Apple Software Renderer") == 0;
 }
 
+// This guesses whether we're on a low-end Intel GPU on which DR is extremely slow.
+static bool is_broken_intel(GL *gl)
+{
+    const char *renderer = gl->GetString(GL_RENDERER);
+    const char *vendor = gl->GetString(GL_VENDOR);
+    if (!vendor || !renderer || strncmp(vendor, "Intel", 5))
+        return false;
+    // Check if the codename in the renderer matches one of Intel's (recent) "Small Cores"
+    // cf. https://cgit.freedesktop.org/mesa/mesa/tree/include/pci_ids/i965_pci_ids.h
+    const char *blacklist[] = {
+        "(CHV)", "(BSW)", "(APL 2)", "(APL 3)", "(BXT 2)", "(BXT 3)",
+        "(GLK 2)", "(GLK 3)", "(EHL)", "(JSL)",
+        NULL,
+    };
+    for (int i = 0; blacklist[i]; i++) {
+        if (strstr(renderer, blacklist[i]))
+            return true;
+    }
+    return false;
+}
+
 static void GLAPIENTRY dummy_glBindFramebuffer(GLenum target, GLuint framebuffer)
 {
     assert(framebuffer == 0);
@@ -640,6 +661,11 @@ void mpgl_load_functions2(GL *gl, void *(*get_fn)(void *ctx, const char *n),
     if (is_software_gl(gl)) {
         gl->mpgl_caps |= MPGL_CAP_SW;
         mp_verbose(log, "Detected suspected software renderer.\n");
+    }
+
+    if (is_broken_intel(gl)) {
+        gl->mpgl_caps |= MPGL_CAP_SLOW_DR;
+        mp_verbose(log, "Detected low-end Intel GPU, DR will not be enabled.\n");
     }
 
     // GL_ARB_compute_shader & GL_ARB_shader_image_load_store
