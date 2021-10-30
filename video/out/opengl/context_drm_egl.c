@@ -90,6 +90,7 @@ struct priv {
     GLsync *vsync_fences;
     unsigned int num_vsync_fences;
 
+    EGLConfig egl_config;
     uint32_t gbm_format;
 
     bool active;
@@ -173,8 +174,7 @@ static int match_config_to_visual(void *user_data, EGLConfig *configs, int num_c
         MP_VERBOSE(ctx, "No matching EGLConfig for %s\n", gbm_format_to_string(visual_id[i]));
     }
 
-    MP_ERR(ctx, "Could not find EGLConfig matching the GBM visual (%s).\n",
-           gbm_format_to_string(p->gbm_format));
+    MP_ERR(ctx, "Could not find EGLConfig matching the GBM visual.\n");
     return -1;
 }
 
@@ -210,16 +210,23 @@ static bool init_egl(struct ra_ctx *ctx)
         MP_ERR(ctx, "Failed to initialize EGL.\n");
         return false;
     }
-    EGLConfig config;
     if (!mpegl_create_context_cb(ctx,
                                  p->egl.display,
                                  (struct mpegl_cb){match_config_to_visual, ctx},
                                  &p->egl.context,
-                                 &config))
+                                 &p->egl_config))
         return false;
+    return true;
+}
+
+static bool init_egl2(struct ra_ctx *ctx)
+{
+    struct priv *p = ctx->priv;
     MP_VERBOSE(ctx, "Initializing EGL surface\n");
-    p->egl.surface
-        = eglCreateWindowSurface(p->egl.display, config, p->gbm.surface, NULL);
+    p->egl.surface = eglCreateWindowSurface(p->egl.display,
+                                            p->egl_config,
+                                            p->gbm.surface,
+                                            NULL);
     if (p->egl.surface == EGL_NO_SURFACE) {
         MP_ERR(ctx, "Failed to create EGL surface.\n");
         return false;
@@ -774,13 +781,16 @@ static bool drm_egl_init(struct ra_ctx *ctx)
         return false;
     }
 
+    if (!init_egl(ctx)) {
+        return false;
+    }
+
     if (!init_gbm(ctx)) {
         MP_ERR(ctx->vo, "Failed to setup GBM.\n");
         return false;
     }
 
-    if (!init_egl(ctx)) {
-        MP_ERR(ctx->vo, "Failed to setup EGL.\n");
+    if (!init_egl2(ctx)) {
         return false;
     }
 
