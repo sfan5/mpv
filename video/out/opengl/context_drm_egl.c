@@ -248,12 +248,13 @@ static bool init_gbm(struct ra_ctx *ctx)
     MP_VERBOSE(ctx->vo, "Initializing GBM surface (%d x %d)\n",
         p->draw_surface_size.width, p->draw_surface_size.height);
     uint64_t modifiers[] = {DRM_FORMAT_MOD_LINEAR};
-    p->gbm.surface = gbm_surface_create_with_modifiers(
+    p->gbm.surface = gbm_surface_create_with_modifiers2(
         p->gbm.device,
         p->draw_surface_size.width,
         p->draw_surface_size.height,
         p->gbm_format,
-        modifiers, MP_ARRAY_SIZE(modifiers));
+        modifiers, MP_ARRAY_SIZE(modifiers),
+        GBM_BO_USE_SCANOUT | GBM_BO_USE_RENDERING);
     if (!p->gbm.surface) {
         MP_ERR(ctx->vo, "Failed to create GBM surface.\n");
         return false;
