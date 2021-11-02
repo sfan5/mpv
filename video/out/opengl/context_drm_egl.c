@@ -224,7 +224,9 @@ static bool init_egl2(struct ra_ctx *ctx)
 {
     struct priv *p = ctx->priv;
     MP_VERBOSE(ctx, "Initializing EGL surface\n");
-    p->egl.surface = eglCreateWindowSurface(p->egl.display,
+    PFNEGLCREATEPLATFORMWINDOWSURFACEEXTPROC create_window_surface = NULL;
+    create_window_surface = (void *) eglGetProcAddress("eglCreatePlatformWindowSurfaceEXT");
+    p->egl.surface = create_window_surface(p->egl.display,
                                             p->egl_config,
                                             p->gbm.surface,
                                             NULL);
@@ -248,13 +250,30 @@ static bool init_gbm(struct ra_ctx *ctx)
     MP_VERBOSE(ctx->vo, "Initializing GBM surface (%d x %d)\n",
         p->draw_surface_size.width, p->draw_surface_size.height);
     uint64_t modifiers[] = {DRM_FORMAT_MOD_LINEAR};
+    uint32_t flags = GBM_BO_USE_SCANOUT | GBM_BO_USE_RENDERING;
+#if 0
     p->gbm.surface = gbm_surface_create_with_modifiers2(
         p->gbm.device,
         p->draw_surface_size.width,
         p->draw_surface_size.height,
         p->gbm_format,
         modifiers, MP_ARRAY_SIZE(modifiers),
-        GBM_BO_USE_SCANOUT | GBM_BO_USE_RENDERING);
+        flags);
+#elif 0
+    p->gbm.surface = gbm_surface_create_with_modifiers(
+        p->gbm.device,
+        p->draw_surface_size.width,
+        p->draw_surface_size.height,
+        p->gbm_format,
+        modifiers, MP_ARRAY_SIZE(modifiers));
+#else
+    p->gbm.surface = gbm_surface_create(
+        p->gbm.device,
+        p->draw_surface_size.width,
+        p->draw_surface_size.height,
+        p->gbm_format,
+        flags);
+#endif
     if (!p->gbm.surface) {
         MP_ERR(ctx->vo, "Failed to create GBM surface.\n");
         return false;
