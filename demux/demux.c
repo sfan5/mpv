@@ -28,25 +28,25 @@
 #include <sys/types.h>
 
 #include "cache.h"
-#include "config.h"
-#include "options/m_config.h"
-#include "options/m_option.h"
-#include "mpv_talloc.h"
 #include "common/av_common.h"
-#include "common/msg.h"
 #include "common/global.h"
+#include "common/msg.h"
 #include "common/recorder.h"
 #include "common/stats.h"
+#include "config.h"
 #include "misc/charset_conv.h"
 #include "misc/thread_tools.h"
-#include "osdep/timer.h"
+#include "mpv_talloc.h"
+#include "options/m_config.h"
+#include "options/m_option.h"
 #include "osdep/threads.h"
+#include "osdep/timer.h"
 
-#include "stream/stream.h"
-#include "demux.h"
-#include "timeline.h"
-#include "stheader.h"
 #include "cue.h"
+#include "demux.h"
+#include "stheader.h"
+#include "stream/stream.h"
+#include "timeline.h"
 
 // Demuxer list
 extern const struct demuxer_desc demuxer_desc_edl;
@@ -64,23 +64,21 @@ extern const demuxer_desc_t demuxer_desc_libarchive;
 extern const demuxer_desc_t demuxer_desc_null;
 extern const demuxer_desc_t demuxer_desc_timeline;
 
-static const demuxer_desc_t *const demuxer_list[] = {
-    &demuxer_desc_directory,
-    &demuxer_desc_disc,
-    &demuxer_desc_edl,
-    &demuxer_desc_cue,
-    &demuxer_desc_rawaudio,
-    &demuxer_desc_rawvideo,
-    &demuxer_desc_matroska,
+static const demuxer_desc_t *const demuxer_list[] = { &demuxer_desc_directory,
+                                                      &demuxer_desc_disc,
+                                                      &demuxer_desc_edl,
+                                                      &demuxer_desc_cue,
+                                                      &demuxer_desc_rawaudio,
+                                                      &demuxer_desc_rawvideo,
+                                                      &demuxer_desc_matroska,
 #if HAVE_LIBARCHIVE
-    &demuxer_desc_libarchive,
+                                                      &demuxer_desc_libarchive,
 #endif
-    &demuxer_desc_lavf,
-    &demuxer_desc_mf,
-    &demuxer_desc_playlist,
-    &demuxer_desc_null,
-    NULL
-};
+                                                      &demuxer_desc_lavf,
+                                                      &demuxer_desc_mf,
+                                                      &demuxer_desc_playlist,
+                                                      &demuxer_desc_null,
+                                                      NULL };
 
 #define OPT_BASE_STRUCT struct demux_opts
 
@@ -152,13 +150,13 @@ struct demux_internal {
     struct mpv_global *global;
     struct stats_ctx *stats;
 
-    bool can_cache;             // not a slave demuxer; caching makes sense
-    bool can_record;            // stream recording is allowed
+    bool can_cache;   // not a slave demuxer; caching makes sense
+    bool can_record;  // stream recording is allowed
 
     // The demuxer runs potentially in another thread, so we keep two demuxer
     // structs; the real demuxer can access the shadow struct only.
-    struct demuxer *d_thread;   // accessed by demuxer impl. (producer)
-    struct demuxer *d_user;     // accessed by player (consumer)
+    struct demuxer *d_thread;  // accessed by demuxer impl. (producer)
+    struct demuxer *d_user;    // accessed by player (consumer)
 
     // The lock protects the packet queues (struct demux_stream),
     // and the fields below.
@@ -188,9 +186,9 @@ struct demux_internal {
     struct demux_cache *cache;
 
     bool warned_queue_overflow;
-    bool eof;                   // whether we're in EOF state
+    bool eof;  // whether we're in EOF state
     double min_secs;
-    double hyst_secs;           // stop reading till there's hyst_secs remaining
+    double hyst_secs;  // stop reading till there's hyst_secs remaining
     bool hyst_active;
     size_t max_bytes;
     size_t max_bytes_bw;
@@ -220,33 +218,33 @@ struct demux_internal {
     bool back_demuxing;
 
     // For backward demuxing:
-    bool need_back_seek;        // back-step seek needs to be triggered
-    bool back_any_need_recheck; // at least 1 ds->back_need_recheck set
+    bool need_back_seek;         // back-step seek needs to be triggered
+    bool back_any_need_recheck;  // at least 1 ds->back_need_recheck set
 
-    bool tracks_switched;       // thread needs to inform demuxer of this
+    bool tracks_switched;  // thread needs to inform demuxer of this
 
-    bool seeking;               // there's a seek queued
-    int seek_flags;             // flags for next seek (if seeking==true)
+    bool seeking;    // there's a seek queued
+    int seek_flags;  // flags for next seek (if seeking==true)
     double seek_pts;
 
     // (fields for debugging)
-    double seeking_in_progress; // low level seek state
-    int low_level_seeks;        // number of started low level seeks
-    double demux_ts;            // last demuxed DTS or PTS
+    double seeking_in_progress;  // low level seek state
+    int low_level_seeks;         // number of started low level seeks
+    double demux_ts;             // last demuxed DTS or PTS
 
-    double ts_offset;           // timestamp offset to apply to everything
+    double ts_offset;  // timestamp offset to apply to everything
 
     // (sorted by least recent use: index 0 is least recently used)
     struct demux_cached_range **ranges;
     int num_ranges;
 
-    size_t total_bytes;         // total sum of packet data buffered
+    size_t total_bytes;  // total sum of packet data buffered
     // Range from which decoder is reading, and to which demuxer is appending.
     // This is normally never NULL. This is always ranges[num_ranges - 1].
     // This is can be NULL during initialization or deinitialization.
     struct demux_cached_range *current_range;
 
-    double highest_av_pts;      // highest non-subtitle PTS seen - for duration
+    double highest_av_pts;  // highest non-subtitle PTS seen - for duration
 
     bool blocked;
 
@@ -260,7 +258,7 @@ struct demux_internal {
     int64_t next_cache_update;
 
     // demux user state (user thread, somewhat similar to reader/decoder state)
-    double last_playback_pts;   // last playback_pts from demux_update()
+    double last_playback_pts;  // last playback_pts from demux_update()
     bool force_metadata_update;
     int cached_metadata_index;  // speed up repeated lookups
 
@@ -272,10 +270,11 @@ struct demux_internal {
     // -- Access from demuxer thread only
     bool enable_recording;
     struct mp_recorder *recorder;
-    int64_t slave_unbuffered_read_bytes; // value repoted from demuxer impl.
-    int64_t hack_unbuffered_read_bytes;  // for demux_get_bytes_read_hack()
-    int64_t cache_unbuffered_read_bytes; // for demux_reader_state.bytes_per_second
-    int64_t byte_level_seeks;            // for demux_reader_state.byte_level_seeks
+    int64_t slave_unbuffered_read_bytes;  // value repoted from demuxer impl.
+    int64_t hack_unbuffered_read_bytes;   // for demux_get_bytes_read_hack()
+    int64_t
+        cache_unbuffered_read_bytes;  // for demux_reader_state.bytes_per_second
+    int64_t byte_level_seeks;         // for demux_reader_state.byte_level_seeks
 };
 
 struct timed_metadata {
@@ -295,8 +294,8 @@ struct demux_cached_range {
     // demux_queue) are always either NOPTS, or fully valid.
     double seek_start, seek_end;
 
-    bool is_bof;            // set if the file begins with this range
-    bool is_eof;            // set if the file ends with this range
+    bool is_bof;  // set if the file begins with this range
+    bool is_eof;  // set if the file ends with this range
 
     struct timed_metadata **metadata;
     int num_metadata;
@@ -330,23 +329,23 @@ struct demux_queue {
 
     uint64_t tail_cum_pos;  // cumulative size including tail packet
 
-    bool correct_dts;       // packet DTS is strictly monotonically increasing
-    bool correct_pos;       // packet pos is strictly monotonically increasing
-    int64_t last_pos;       // for determining correct_pos
-    int64_t last_pos_fixup; // for filling in unset dp->pos values
-    double last_dts;        // for determining correct_dts
-    double last_ts;         // timestamp of the last packet added to queue
+    bool correct_dts;        // packet DTS is strictly monotonically increasing
+    bool correct_pos;        // packet pos is strictly monotonically increasing
+    int64_t last_pos;        // for determining correct_pos
+    int64_t last_pos_fixup;  // for filling in unset dp->pos values
+    double last_dts;         // for determining correct_dts
+    double last_ts;          // timestamp of the last packet added to queue
 
     // for incrementally determining seek PTS range
     struct demux_packet *keyframe_latest;
-    struct demux_packet *keyframe_first; // cached value of first KF packet
+    struct demux_packet *keyframe_first;  // cached value of first KF packet
 
     // incrementally maintained seek range, possibly invalid
     double seek_start, seek_end;
-    double last_pruned;     // timestamp of last pruned keyframe
+    double last_pruned;  // timestamp of last pruned keyframe
 
-    bool is_bof;            // started demuxing at beginning of file
-    bool is_eof;            // received true EOF here
+    bool is_bof;  // started demuxing at beginning of file
+    bool is_eof;  // received true EOF here
 
     // Complete index, though it may skip some entries to reduce density.
     struct index_entry *index;  // ring buffer
@@ -366,15 +365,15 @@ struct demux_stream {
     void *wakeup_cb_ctx;
 
     // demuxer state
-    bool selected;          // user wants packets from this stream
-    bool eager;             // try to keep at least 1 packet queued
-                            // if false, this stream is disabled, or passively
-                            // read (like subtitles)
-    bool still_image;       // stream consists of multiple sparse still images
-    bool refreshing;        // finding old position after track switches
-    bool eof;               // end of demuxed stream? (true if no more packets)
+    bool selected;     // user wants packets from this stream
+    bool eager;        // try to keep at least 1 packet queued
+                       // if false, this stream is disabled, or passively
+                       // read (like subtitles)
+    bool still_image;  // stream consists of multiple sparse still images
+    bool refreshing;   // finding old position after track switches
+    bool eof;          // end of demuxed stream? (true if no more packets)
 
-    bool global_correct_dts;// all observed so far
+    bool global_correct_dts;  // all observed so far
     bool global_correct_pos;
 
     // current queue - used both for reading and demuxing (this is never NULL)
@@ -382,15 +381,15 @@ struct demux_stream {
 
     // reader (decoder) state (bitrate calculations are part of it because we
     // want to return the bitrate closest to the "current position")
-    double base_ts;         // timestamp of the last packet returned to decoder
-    double last_br_ts;      // timestamp of last packet bitrate was calculated
-    size_t last_br_bytes;   // summed packet sizes since last bitrate calculation
+    double base_ts;        // timestamp of the last packet returned to decoder
+    double last_br_ts;     // timestamp of last packet bitrate was calculated
+    size_t last_br_bytes;  // summed packet sizes since last bitrate calculation
     double bitrate;
-    struct demux_packet *reader_head;   // points at current decoder position
+    struct demux_packet *reader_head;  // points at current decoder position
     bool skip_to_keyframe;
     bool attached_picture_added;
-    bool need_wakeup;       // call wakeup_cb on next reader_head state change
-    double force_read_until;// eager=false streams (subs): force read-ahead
+    bool need_wakeup;         // call wakeup_cb on next reader_head state change
+    double force_read_until;  // eager=false streams (subs): force read-ahead
 
     // For demux_internal.dumper. Currently, this is used only temporarily
     // during blocking dumping.
@@ -401,14 +400,15 @@ struct demux_stream {
     double last_ret_dts;
 
     // Backwards demuxing.
-    bool back_need_recheck; // flag for incremental find_backward_restart_pos work
+    bool back_need_recheck;  // flag for incremental find_backward_restart_pos
+                             // work
     // pos/dts of the previous keyframe packet returned; always valid if back-
     // demuxing is enabled, and back_restart_eof/back_restart_next are false.
     int64_t back_restart_pos;
     double back_restart_dts;
-    bool back_restart_eof; // restart position is at EOF; overrides pos/dts
-    bool back_restart_next; // restart before next keyframe; overrides above
-    bool back_restarting;   // searching keyframe before restart pos
+    bool back_restart_eof;   // restart position is at EOF; overrides pos/dts
+    bool back_restart_next;  // restart before next keyframe; overrides above
+    bool back_restarting;    // searching keyframe before restart pos
     // Current PTS lower bound for back demuxing.
     double back_seek_pos;
     // pos/dts of the packet to resume demuxing from when another stream caused
@@ -416,7 +416,7 @@ struct demux_stream {
     // packet as soon as it's encountered again.
     int64_t back_resume_pos;
     double back_resume_dts;
-    bool back_resuming;     // resuming mode (above fields are valid/used)
+    bool back_resuming;  // resuming mode (above fields are valid/used)
     // Set to true if the first packet (keyframe) of a range was returned.
     bool back_range_started;
     // Number of KF packets at start of range yet to return. -1 is used for BOF.
@@ -428,7 +428,7 @@ struct demux_stream {
 
     // for closed captions (demuxer_feed_caption)
     struct sh_stream *cc;
-    bool ignore_eof;        // ignore stream in underrun detection
+    bool ignore_eof;  // ignore stream in underrun detection
 };
 
 static void switch_to_fresh_cache_range(struct demux_internal *in);
@@ -568,7 +568,7 @@ static void prune_metadata(struct demux_cached_range *range)
     if (range->seek_start == MP_NOPTS_VALUE) {
         first_needed = range->num_metadata;
     } else {
-        for (int n = 0; n < range->num_metadata ; n++) {
+        for (int n = 0; n < range->num_metadata; n++) {
             if (range->metadata[n]->pts > range->seek_start)
                 break;
             first_needed = n;
@@ -590,11 +590,11 @@ static void prune_metadata(struct demux_cached_range *range)
 static void update_seek_ranges(struct demux_cached_range *range)
 {
     range->seek_start = range->seek_end = MP_NOPTS_VALUE;
-    range->is_bof = true;
-    range->is_eof = true;
+    range->is_bof                       = true;
+    range->is_eof                       = true;
 
     double min_start_pts = MP_NOPTS_VALUE;
-    double max_end_pts = MP_NOPTS_VALUE;
+    double max_end_pts   = MP_NOPTS_VALUE;
 
     for (int n = 0; n < range->num_streams; n++) {
         struct demux_queue *queue = range->streams[n];
@@ -666,7 +666,8 @@ static void update_seek_ranges(struct demux_cached_range *range)
         }
     }
 
-    if (range->seek_start >= range->seek_end && !(range->is_bof && range->is_eof))
+    if (range->seek_start >= range->seek_end &&
+        !(range->is_bof && range->is_eof))
         goto broken;
 
     prune_metadata(range);
@@ -706,19 +707,19 @@ static void remove_head_packet(struct demux_queue *queue)
 
 static void free_index(struct demux_queue *queue)
 {
-    struct demux_stream *ds = queue->ds;
+    struct demux_stream *ds   = queue->ds;
     struct demux_internal *in = ds->in;
 
     in->total_bytes -= queue->index_size * sizeof(queue->index[0]);
     queue->index_size = 0;
-    queue->index0 = 0;
-    queue->num_index = 0;
+    queue->index0     = 0;
+    queue->num_index  = 0;
     TA_FREEP(&queue->index);
 }
 
 static void clear_queue(struct demux_queue *queue)
 {
-    struct demux_stream *ds = queue->ds;
+    struct demux_stream *ds   = queue->ds;
     struct demux_internal *in = ds->in;
 
     if (queue->head)
@@ -734,14 +735,14 @@ static void clear_queue(struct demux_queue *queue)
         dp = dn;
     }
     queue->head = queue->tail = NULL;
-    queue->keyframe_first = NULL;
-    queue->keyframe_latest = NULL;
+    queue->keyframe_first     = NULL;
+    queue->keyframe_latest    = NULL;
     queue->seek_start = queue->seek_end = queue->last_pruned = MP_NOPTS_VALUE;
 
     queue->correct_dts = queue->correct_pos = true;
-    queue->last_pos = -1;
+    queue->last_pos                         = -1;
     queue->last_ts = queue->last_dts = MP_NOPTS_VALUE;
-    queue->last_pos_fixup = -1;
+    queue->last_pos_fixup            = -1;
 
     queue->is_eof = false;
     queue->is_bof = false;
@@ -801,7 +802,7 @@ static void free_empty_cached_ranges(struct demux_internal *in)
 static void ds_clear_reader_queue_state(struct demux_stream *ds)
 {
     ds->reader_head = NULL;
-    ds->eof = false;
+    ds->eof         = false;
     ds->need_wakeup = true;
 }
 
@@ -811,40 +812,39 @@ static void ds_clear_reader_state(struct demux_stream *ds,
     ds_clear_reader_queue_state(ds);
 
     ds->base_ts = ds->last_br_ts = MP_NOPTS_VALUE;
-    ds->last_br_bytes = 0;
-    ds->bitrate = -1;
-    ds->skip_to_keyframe = false;
-    ds->attached_picture_added = false;
-    ds->last_ret_pos = -1;
-    ds->last_ret_dts = MP_NOPTS_VALUE;
-    ds->force_read_until = MP_NOPTS_VALUE;
+    ds->last_br_bytes            = 0;
+    ds->bitrate                  = -1;
+    ds->skip_to_keyframe         = false;
+    ds->attached_picture_added   = false;
+    ds->last_ret_pos             = -1;
+    ds->last_ret_dts             = MP_NOPTS_VALUE;
+    ds->force_read_until         = MP_NOPTS_VALUE;
 
     if (clear_back_state) {
-        ds->back_restart_pos = -1;
-        ds->back_restart_dts = MP_NOPTS_VALUE;
-        ds->back_restart_eof = false;
-        ds->back_restart_next = ds->in->back_demuxing;
-        ds->back_restarting = ds->in->back_demuxing && ds->eager;
-        ds->back_seek_pos = MP_NOPTS_VALUE;
-        ds->back_resume_pos = -1;
-        ds->back_resume_dts = MP_NOPTS_VALUE;
-        ds->back_resuming = false;
+        ds->back_restart_pos   = -1;
+        ds->back_restart_dts   = MP_NOPTS_VALUE;
+        ds->back_restart_eof   = false;
+        ds->back_restart_next  = ds->in->back_demuxing;
+        ds->back_restarting    = ds->in->back_demuxing && ds->eager;
+        ds->back_seek_pos      = MP_NOPTS_VALUE;
+        ds->back_resume_pos    = -1;
+        ds->back_resume_dts    = MP_NOPTS_VALUE;
+        ds->back_resuming      = false;
         ds->back_range_started = false;
-        ds->back_range_count = 0;
+        ds->back_range_count   = 0;
         ds->back_range_preroll = 0;
     }
 }
 
 // called locked, from user thread only
-static void clear_reader_state(struct demux_internal *in,
-                               bool clear_back_state)
+static void clear_reader_state(struct demux_internal *in, bool clear_back_state)
 {
     for (int n = 0; n < in->num_streams; n++)
         ds_clear_reader_state(in->streams[n]->ds, clear_back_state);
     in->warned_queue_overflow = false;
-    in->d_user->filepos = -1; // implicitly synchronized
-    in->blocked = false;
-    in->need_back_seek = false;
+    in->d_user->filepos       = -1;  // implicitly synchronized
+    in->blocked               = false;
+    in->need_back_seek        = false;
 }
 
 // Call if the observed reader state on this stream somehow changes. The wakeup
@@ -866,20 +866,20 @@ static void wakeup_ds(struct demux_stream *ds)
 static void update_stream_selection_state(struct demux_internal *in,
                                           struct demux_stream *ds)
 {
-    ds->eof = false;
+    ds->eof        = false;
     ds->refreshing = false;
 
     // We still have to go over the whole stream list to update ds->eager for
     // other streams too, because they depend on other stream's selections.
 
     bool any_av_streams = false;
-    bool any_streams = false;
+    bool any_streams    = false;
 
     for (int n = 0; n < in->num_streams; n++) {
         struct demux_stream *s = in->streams[n]->ds;
 
         s->still_image = s->sh->still_image;
-        s->eager = s->selected && !s->sh->attached_picture;
+        s->eager       = s->selected && !s->sh->attached_picture;
         if (s->eager && !s->still_image)
             any_av_streams |= s->type != STREAM_SUB;
         any_streams |= s->selected;
@@ -934,9 +934,9 @@ static void add_missing_streams(struct demux_internal *in,
         struct demux_stream *ds = in->streams[n]->ds;
 
         struct demux_queue *queue = talloc_ptrtype(NULL, queue);
-        *queue = (struct demux_queue){
-            .ds = ds,
-            .range = range,
+        *queue                    = (struct demux_queue){
+                               .ds    = ds,
+                               .range = range,
         };
         clear_queue(queue);
         MP_TARRAY_APPEND(range, range->streams, range->num_streams, queue);
@@ -951,14 +951,14 @@ static void add_missing_streams(struct demux_internal *in,
 struct sh_stream *demux_alloc_sh_stream(enum stream_type type)
 {
     struct sh_stream *sh = talloc_ptrtype(NULL, sh);
-    *sh = (struct sh_stream) {
-        .type = type,
-        .index = -1,
-        .ff_index = -1,     // may be overwritten by demuxer
-        .demuxer_id = -1,   // ... same
-        .program_id = -1,   // ... same
-        .codec = talloc_zero(sh, struct mp_codec_params),
-        .tags = talloc_zero(sh, struct mp_tags),
+    *sh                  = (struct sh_stream){
+                         .type       = type,
+                         .index      = -1,
+                         .ff_index   = -1,  // may be overwritten by demuxer
+                         .demuxer_id = -1,  // ... same
+                         .program_id = -1,  // ... same
+                         .codec      = talloc_zero(sh, struct mp_codec_params),
+                         .tags       = talloc_zero(sh, struct mp_tags),
     };
     sh->codec->type = type;
     return sh;
@@ -970,16 +970,16 @@ struct sh_stream *demux_alloc_sh_stream(enum stream_type type)
 static void demux_add_sh_stream_locked(struct demux_internal *in,
                                        struct sh_stream *sh)
 {
-    assert(!sh->ds); // must not be added yet
+    assert(!sh->ds);  // must not be added yet
 
     sh->index = in->num_streams;
 
-    sh->ds = talloc(sh, struct demux_stream);
-    *sh->ds = (struct demux_stream) {
-        .in = in,
-        .sh = sh,
-        .type = sh->type,
-        .index = sh->index,
+    sh->ds  = talloc(sh, struct demux_stream);
+    *sh->ds = (struct demux_stream){
+        .in                 = in,
+        .sh                 = sh,
+        .type               = sh->type,
+        .index              = sh->index,
         .global_correct_dts = true,
         .global_correct_pos = true,
     };
@@ -1007,7 +1007,7 @@ static void demux_add_sh_stream_locked(struct demux_internal *in,
     switch (ds->type) {
     case STREAM_AUDIO:
         ds->back_preroll = in->d_user->opts->audio_back_preroll;
-        if (ds->back_preroll < 0) { // auto
+        if (ds->back_preroll < 0) {  // auto
             ds->back_preroll = mp_codec_is_lossless(sh->codec->codec) ? 0 : 1;
             if (sh->codec->codec && (strcmp(sh->codec->codec, "opus") == 0 ||
                                      strcmp(sh->codec->codec, "vorbis") == 0 ||
@@ -1018,7 +1018,7 @@ static void demux_add_sh_stream_locked(struct demux_internal *in,
     case STREAM_VIDEO:
         ds->back_preroll = in->d_user->opts->video_back_preroll;
         if (ds->back_preroll < 0)
-            ds->back_preroll = 0; // auto
+            ds->back_preroll = 0;  // auto
         break;
     }
 
@@ -1081,7 +1081,7 @@ static void demux_shutdown(struct demux_internal *in)
 
     if (demuxer->desc->close)
         demuxer->desc->close(in->d_thread);
-    demuxer->priv = NULL;
+    demuxer->priv      = NULL;
     in->d_thread->priv = NULL;
 
     demux_flush(demuxer);
@@ -1136,11 +1136,11 @@ struct demux_free_async_state *demux_free_async(struct demuxer *demuxer)
 
     mp_mutex_lock(&in->lock);
     in->thread_terminate = true;
-    in->shutdown_async = true;
+    in->shutdown_async   = true;
     mp_cond_signal(&in->wakeup);
     mp_mutex_unlock(&in->lock);
 
-    return (struct demux_free_async_state *)demuxer->in; // lies
+    return (struct demux_free_async_state *)demuxer->in;  // lies
 }
 
 // As long as state is valid, you can call this to request immediate abort.
@@ -1148,7 +1148,7 @@ struct demux_free_async_state *demux_free_async(struct demuxer *demuxer)
 // for the result.
 void demux_free_async_force(struct demux_free_async_state *state)
 {
-    struct demux_internal *in = (struct demux_internal *)state; // reverse lies
+    struct demux_internal *in = (struct demux_internal *)state;  // reverse lies
 
     mp_cancel_trigger(in->d_user->cancel);
 }
@@ -1160,7 +1160,7 @@ void demux_free_async_force(struct demux_free_async_state *state)
 // be called again).
 bool demux_free_async_finish(struct demux_free_async_state *state)
 {
-    struct demux_internal *in = (struct demux_internal *)state; // reverse lies
+    struct demux_internal *in = (struct demux_internal *)state;  // reverse lies
 
     mp_mutex_lock(&in->lock);
     bool busy = in->shutdown_async;
@@ -1209,17 +1209,19 @@ void demux_stop_thread(struct demuxer *demuxer)
         mp_cond_signal(&in->wakeup);
         mp_mutex_unlock(&in->lock);
         mp_thread_join(in->thread);
-        in->threading = false;
+        in->threading        = false;
         in->thread_terminate = false;
     }
 }
 
-// The demuxer thread will call cb(ctx) if there's a new packet, or EOF is reached.
-void demux_set_wakeup_cb(struct demuxer *demuxer, void (*cb)(void *ctx), void *ctx)
+// The demuxer thread will call cb(ctx) if there's a new packet, or EOF is
+// reached.
+void demux_set_wakeup_cb(struct demuxer *demuxer, void (*cb)(void *ctx),
+                         void *ctx)
 {
     struct demux_internal *in = demuxer->in;
     mp_mutex_lock(&in->lock);
-    in->wakeup_cb = cb;
+    in->wakeup_cb     = cb;
     in->wakeup_cb_ctx = ctx;
     mp_mutex_unlock(&in->lock);
 }
@@ -1238,10 +1240,10 @@ void demux_start_prefetch(struct demuxer *demuxer)
 const char *stream_type_name(enum stream_type type)
 {
     switch (type) {
-    case STREAM_VIDEO:  return "video";
-    case STREAM_AUDIO:  return "audio";
-    case STREAM_SUB:    return "sub";
-    default:            return "unknown";
+    case STREAM_VIDEO: return "video";
+    case STREAM_AUDIO: return "audio";
+    case STREAM_SUB: return "sub";
+    default: return "unknown";
     }
 }
 
@@ -1253,11 +1255,11 @@ static struct sh_stream *demuxer_get_cc_track_locked(struct sh_stream *stream)
         sh = demux_alloc_sh_stream(STREAM_SUB);
         if (!sh)
             return NULL;
-        sh->codec->codec = "eia_608";
+        sh->codec->codec  = "eia_608";
         sh->default_track = true;
-        sh->hls_bitrate = stream->hls_bitrate;
-        sh->program_id = stream->program_id;
-        stream->ds->cc = sh;
+        sh->hls_bitrate   = stream->hls_bitrate;
+        sh->program_id    = stream->program_id;
+        stream->ds->cc    = sh;
         demux_add_sh_stream_locked(stream->ds->in, sh);
         sh->ds->ignore_eof = true;
     }
@@ -1278,9 +1280,9 @@ void demuxer_feed_caption(struct sh_stream *stream, demux_packet_t *dp)
     }
 
     dp->keyframe = true;
-    dp->pts = MP_ADD_PTS(dp->pts, -in->ts_offset);
-    dp->dts = MP_ADD_PTS(dp->dts, -in->ts_offset);
-    dp->stream = sh->index;
+    dp->pts      = MP_ADD_PTS(dp->pts, -in->ts_offset);
+    dp->dts      = MP_ADD_PTS(dp->dts, -in->ts_offset);
+    dp->stream   = sh->index;
     add_packet_locked(sh, dp);
     mp_mutex_unlock(&in->lock);
 }
@@ -1304,7 +1306,7 @@ static void perform_backward_seek(struct demux_internal *in)
         if (ds->reader_head && !ds->back_restarting && !ds->back_resuming &&
             ds->eager)
         {
-            ds->back_resuming = true;
+            ds->back_resuming   = true;
             ds->back_resume_pos = ds->reader_head->pos;
             ds->back_resume_dts = ds->reader_head->dts;
         }
@@ -1350,7 +1352,7 @@ static void find_backward_restart_pos(struct demux_stream *ds)
         return;
 
     struct demux_packet *first = ds->reader_head;
-    struct demux_packet *last = ds->queue->tail;
+    struct demux_packet *last  = ds->queue->tail;
 
     if (first && !first->keyframe)
         MP_WARN(in, "Queue not starting on keyframe.\n");
@@ -1366,9 +1368,9 @@ static void find_backward_restart_pos(struct demux_stream *ds)
         for (struct demux_packet *cur = first; cur; cur = cur->next) {
             // Restart for next keyframe after reader_head.
             if (cur != first && cur->keyframe) {
-                ds->back_restart_dts = cur->dts;
-                ds->back_restart_pos = cur->pos;
-                ds->back_restart_eof = false;
+                ds->back_restart_dts  = cur->dts;
+                ds->back_restart_pos  = cur->pos;
+                ds->back_restart_eof  = false;
                 ds->back_restart_next = false;
                 break;
             }
@@ -1376,7 +1378,7 @@ static void find_backward_restart_pos(struct demux_stream *ds)
 
         if (ds->back_restart_next && ds->eof) {
             // Restart from end if nothing was found.
-            ds->back_restart_eof = true;
+            ds->back_restart_eof  = true;
             ds->back_restart_next = false;
         }
 
@@ -1395,20 +1397,19 @@ static void find_backward_restart_pos(struct demux_stream *ds)
         // Fall through, hit the no-keyframe case (and possibly the BOF check
         // if there are no packets at all), and then resume_earlier.
     } else if (!first) {
-        return; // no packets yet
+        return;  // no packets yet
     } else {
         assert(last);
 
         if ((ds->global_correct_dts && last->dts < ds->back_restart_dts) ||
             (ds->global_correct_pos && last->pos < ds->back_restart_pos))
-            return; // restart pos not reached yet
+            return;  // restart pos not reached yet
 
         // The target we're searching for is apparently before the start of the
         // queue.
         if ((ds->global_correct_dts && first->dts > ds->back_restart_dts) ||
             (ds->global_correct_pos && first->pos > ds->back_restart_pos))
-            goto resume_earlier; // current position is too late; seek back
-
+            goto resume_earlier;  // current position is too late; seek back
 
         for (struct demux_packet *cur = first; cur; cur = cur->next) {
             if ((ds->global_correct_dts && cur->dts == ds->back_restart_dts) ||
@@ -1433,8 +1434,8 @@ static void find_backward_restart_pos(struct demux_stream *ds)
     // packets earlier.
 
     // (Normally, we'd just iterate backwards, but no back links.)
-    int num_kf = 0;
-    struct demux_packet *pre_1 = NULL; // idiotic "optimization" for total=1
+    int num_kf                 = 0;
+    struct demux_packet *pre_1 = NULL;  // idiotic "optimization" for total=1
     for (struct demux_packet *dp = first; dp != back_restart; dp = dp->next) {
         if (dp->keyframe) {
             num_kf++;
@@ -1450,19 +1451,21 @@ static void find_backward_restart_pos(struct demux_stream *ds)
 
     assert(total >= 1);
 
-    bool is_bof = ds->queue->is_bof &&
+    bool is_bof =
+        ds->queue->is_bof &&
         (first == ds->queue->head || ds->back_seek_pos < ds->queue->seek_start);
 
-    struct demux_packet *target = NULL; // resume pos
+    struct demux_packet *target = NULL;  // resume pos
     // nr. of keyframes, incl. target, excl. restart_pos
-    int got_total = num_kf < total && is_bof ? num_kf : total;
+    int got_total   = num_kf < total && is_bof ? num_kf : total;
     int got_preroll = MPMAX(got_total - batch, 0);
 
     if (got_total == 1) {
         target = pre_1;
     } else if (got_total <= num_kf) {
         int cur_kf = 0;
-        for (struct demux_packet *dp = first; dp != back_restart; dp = dp->next) {
+        for (struct demux_packet *dp = first; dp != back_restart; dp = dp->next)
+        {
             if (dp->keyframe) {
                 if (num_kf - cur_kf == got_total) {
                     target = dp;
@@ -1476,11 +1479,11 @@ static void find_backward_restart_pos(struct demux_stream *ds)
     if (!target) {
         if (is_bof) {
             MP_VERBOSE(in, "BOF for stream %d\n", ds->index);
-            ds->back_restarting = false;
+            ds->back_restarting    = false;
             ds->back_range_started = false;
-            ds->back_range_count = -1;
+            ds->back_range_count   = -1;
             ds->back_range_preroll = 0;
-            ds->need_wakeup = true;
+            ds->need_wakeup        = true;
             wakeup_ds(ds);
             return;
         }
@@ -1491,7 +1494,7 @@ static void find_backward_restart_pos(struct demux_stream *ds)
     // Or if preroll is involved, the first preroll packet.
     while (ds->reader_head != target) {
         if (!advance_reader_head(ds))
-            MP_ASSERT_UNREACHABLE(); // target must be in list
+            MP_ASSERT_UNREACHABLE();  // target must be in list
     }
 
     double seek_pts;
@@ -1501,7 +1504,7 @@ static void find_backward_restart_pos(struct demux_stream *ds)
 
     // For next backward adjust action.
     struct demux_packet *restart_pkt = NULL;
-    int kf_pos = 0;
+    int kf_pos                       = 0;
     for (struct demux_packet *dp = target; dp; dp = dp->next) {
         if (dp->keyframe) {
             if (kf_pos == got_preroll) {
@@ -1515,11 +1518,11 @@ static void find_backward_restart_pos(struct demux_stream *ds)
     ds->back_restart_dts = restart_pkt->dts;
     ds->back_restart_pos = restart_pkt->pos;
 
-    ds->back_restarting = false;
+    ds->back_restarting    = false;
     ds->back_range_started = false;
-    ds->back_range_count = got_total;
+    ds->back_range_count   = got_total;
     ds->back_range_preroll = got_preroll;
-    ds->need_wakeup = true;
+    ds->need_wakeup        = true;
     wakeup_ds(ds);
     return;
 
@@ -1538,7 +1541,8 @@ resume_earlier:
             continue;
 
         if (ds2->back_restarting && ds2->back_restart_next) {
-            MP_VERBOSE(in, "delaying stream %d for %d\n", ds->index, ds2->index);
+            MP_VERBOSE(in, "delaying stream %d for %d\n", ds->index,
+                       ds2->index);
             return;
         }
     }
@@ -1551,8 +1555,8 @@ resume_earlier:
             compute_keyframe_times(t, &pts, NULL);
             ds->back_seek_pos = MP_PTS_MIN(ds->back_seek_pos, pts);
             ds_clear_reader_state(ds, false);
-            ds->reader_head = t;
-            ds->back_need_recheck = true;
+            ds->reader_head           = t;
+            ds->back_need_recheck     = true;
             in->back_any_need_recheck = true;
             mp_cond_signal(&in->wakeup);
         } else {
@@ -1584,8 +1588,8 @@ static void back_demux_see_packets(struct demux_stream *ds)
             (ds->global_correct_pos && head->pos == ds->back_resume_pos))
         {
             ds->back_resuming = false;
-            ds->need_wakeup = true;
-            wakeup_ds(ds); // probably
+            ds->need_wakeup   = true;
+            wakeup_ds(ds);  // probably
             break;
         }
         advance_reader_head(ds);
@@ -1604,7 +1608,8 @@ static void add_index_entry(struct demux_queue *queue, struct demux_packet *dp,
     assert(dp->keyframe && pts != MP_NOPTS_VALUE);
 
     if (queue->num_index > 0) {
-        struct index_entry *last = &QUEUE_INDEX_ENTRY(queue, queue->num_index - 1);
+        struct index_entry *last =
+            &QUEUE_INDEX_ENTRY(queue, queue->num_index - 1);
         if (pts - last->pts < INDEX_STEP_SIZE)
             return;
     }
@@ -1641,8 +1646,8 @@ static void add_index_entry(struct demux_queue *queue, struct demux_packet *dp,
 static void attempt_range_joining(struct demux_internal *in)
 {
     struct demux_cached_range *current = in->current_range;
-    struct demux_cached_range *next = NULL;
-    double next_dist = INFINITY;
+    struct demux_cached_range *next    = NULL;
+    double next_dist                   = INFINITY;
 
     assert(current && in->num_ranges > 0);
     assert(current == in->ranges[in->num_ranges - 1]);
@@ -1654,7 +1659,7 @@ static void attempt_range_joining(struct demux_internal *in)
             // This uses ">" to get some non-0 overlap.
             double dist = current->seek_end - range->seek_start;
             if (dist > 0 && dist < next_dist) {
-                next = range;
+                next      = range;
                 next_dist = dist;
             }
         }
@@ -1663,9 +1668,8 @@ static void attempt_range_joining(struct demux_internal *in)
     if (!next)
         return;
 
-    MP_VERBOSE(in, "going to join ranges %f-%f + %f-%f\n",
-               current->seek_start, current->seek_end,
-               next->seek_start, next->seek_end);
+    MP_VERBOSE(in, "going to join ranges %f-%f + %f-%f\n", current->seek_start,
+               current->seek_end, next->seek_start, next->seek_end);
 
     // Try to find a join point, where packets obviously overlap. (It would be
     // better and faster to do this incrementally, but probably too complex.)
@@ -1685,7 +1689,7 @@ static void attempt_range_joining(struct demux_internal *in)
         }
 
         struct demux_packet *end = q1->tail;
-        bool join_point_found = !end; // no packets yet -> joining will work
+        bool join_point_found    = !end;  // no packets yet -> joining will work
         if (end) {
             while (q2->head) {
                 struct demux_packet *dp = q2->head;
@@ -1693,7 +1697,8 @@ static void attempt_range_joining(struct demux_internal *in)
                 // Some weird corner-case. We'd have to search the equivalent
                 // packet in q1 to update it correctly. Better just give up.
                 if (dp == q2->keyframe_latest) {
-                    MP_VERBOSE(in, "stream %d: not enough keyframes for join\n", n);
+                    MP_VERBOSE(in, "stream %d: not enough keyframes for join\n",
+                               n);
                     goto failed;
                 }
 
@@ -1707,7 +1712,8 @@ static void attempt_range_joining(struct demux_internal *in)
                         dp->pts != end->pts)
                     {
                         MP_WARN(in,
-                            "stream %d: non-repeatable demuxer behavior\n", n);
+                                "stream %d: non-repeatable demuxer behavior\n",
+                                n);
                         goto failed;
                     }
 
@@ -1762,16 +1768,16 @@ static void attempt_range_joining(struct demux_internal *in)
         q1->seek_end = q2->seek_end;
         q1->correct_dts &= q2->correct_dts;
         q1->correct_pos &= q2->correct_pos;
-        q1->last_pos = q2->last_pos;
-        q1->last_dts = q2->last_dts;
-        q1->last_ts = q2->last_ts;
+        q1->last_pos        = q2->last_pos;
+        q1->last_dts        = q2->last_dts;
+        q1->last_ts         = q2->last_ts;
         q1->keyframe_latest = q2->keyframe_latest;
-        q1->is_eof = q2->is_eof;
+        q1->is_eof          = q2->is_eof;
 
         q1->last_pos_fixup = -1;
 
         q2->head = q2->tail = NULL;
-        q2->keyframe_first = NULL;
+        q2->keyframe_first  = NULL;
         q2->keyframe_latest = NULL;
 
         if (ds->selected && !ds->reader_head)
@@ -1781,8 +1787,8 @@ static void attempt_range_joining(struct demux_internal *in)
         // Make the cum_pos values in all q2 packets continuous.
         for (struct demux_packet *dp = join_point; dp; dp = dp->next) {
             uint64_t next_pos = dp->next ? dp->next->cum_pos : q2->tail_cum_pos;
-            uint64_t size = next_pos - dp->cum_pos;
-            dp->cum_pos = q1->tail_cum_pos;
+            uint64_t size     = next_pos - dp->cum_pos;
+            dp->cum_pos       = q1->tail_cum_pos;
             q1->tail_cum_pos += size;
         }
 
@@ -1806,9 +1812,9 @@ static void attempt_range_joining(struct demux_internal *in)
     update_seek_ranges(current);
 
     // Move demuxing position to after the current range.
-    in->seeking = true;
+    in->seeking    = true;
     in->seek_flags = SEEK_HR;
-    in->seek_pts = next->seek_end - 1.0;
+    in->seek_pts   = next->seek_end - 1.0;
 
     MP_VERBOSE(in, "ranges joined!\n");
 
@@ -1834,16 +1840,17 @@ static struct demux_packet *compute_keyframe_times(struct demux_packet *pkt,
                                                    double *out_kf_max)
 {
     struct demux_packet *start = pkt;
-    double min = MP_NOPTS_VALUE;
-    double max = MP_NOPTS_VALUE;
+    double min                 = MP_NOPTS_VALUE;
+    double max                 = MP_NOPTS_VALUE;
 
     while (pkt) {
         if (pkt->keyframe && pkt != start)
             break;
 
         double ts = MP_PTS_OR_DEF(pkt->pts, pkt->dts);
-        if (pkt->segmented && ((pkt->start != MP_NOPTS_VALUE && ts < pkt->start) ||
-                               (pkt->end != MP_NOPTS_VALUE && ts > pkt->end)))
+        if (pkt->segmented &&
+            ((pkt->start != MP_NOPTS_VALUE && ts < pkt->start) ||
+             (pkt->end != MP_NOPTS_VALUE && ts > pkt->end)))
             ts = MP_NOPTS_VALUE;
 
         min = MP_PTS_MIN(min, ts);
@@ -1872,9 +1879,9 @@ static void adjust_seek_range_on_packet(struct demux_stream *ds,
     if (!ds->in->seekable_cache)
         return;
 
-    bool new_eof = !dp;
+    bool new_eof       = !dp;
     bool update_ranges = queue->is_eof != new_eof;
-    queue->is_eof = new_eof;
+    queue->is_eof      = new_eof;
 
     if (!dp || dp->keyframe) {
         if (queue->keyframe_latest) {
@@ -1886,7 +1893,7 @@ static void adjust_seek_range_on_packet(struct demux_stream *ds,
 
                 // Initialize the queue's start if it's unset.
                 if (queue->seek_start == MP_NOPTS_VALUE) {
-                    update_ranges = true;
+                    update_ranges     = true;
                     queue->seek_start = kf_min + ds->sh->seek_preroll;
                 }
             }
@@ -1923,7 +1930,7 @@ static struct mp_recorder *recorder_create(struct demux_internal *in,
                                            const char *dst)
 {
     struct sh_stream **streams = NULL;
-    int num_streams = 0;
+    int num_streams            = 0;
     for (int n = 0; n < in->num_streams; n++) {
         struct sh_stream *stream = in->streams[n];
         if (stream->ds->selected)
@@ -1931,20 +1938,22 @@ static struct mp_recorder *recorder_create(struct demux_internal *in,
     }
 
     struct demuxer *demuxer = in->d_thread;
-    struct demux_attachment **attachments = talloc_array(NULL, struct demux_attachment*, demuxer->num_attachments);
+    struct demux_attachment **attachments =
+        talloc_array(NULL, struct demux_attachment *, demuxer->num_attachments);
     for (int n = 0; n < demuxer->num_attachments; n++) {
         attachments[n] = &demuxer->attachments[n];
     }
 
-    struct mp_recorder *res = mp_recorder_create(in->d_thread->global, dst,
-                                                 streams, num_streams,
-                                                 attachments, demuxer->num_attachments);
+    struct mp_recorder *res =
+        mp_recorder_create(in->d_thread->global, dst, streams, num_streams,
+                           attachments, demuxer->num_attachments);
     talloc_free(streams);
     talloc_free(attachments);
     return res;
 }
 
-static void write_dump_packet(struct demux_internal *in, struct demux_packet *dp)
+static void write_dump_packet(struct demux_internal *in,
+                              struct demux_packet *dp)
 {
     assert(in->dumper);
     assert(in->dumper_status == CONTROL_TRUE);
@@ -2004,7 +2013,7 @@ static void add_packet_locked(struct sh_stream *stream, demux_packet_t *dp)
 
     struct demux_internal *in = ds->in;
 
-    in->after_seek = false;
+    in->after_seek          = false;
     in->after_seek_to_start = false;
 
     double ts = dp->dts == MP_NOPTS_VALUE ? dp->pts : dp->dts;
@@ -2036,7 +2045,7 @@ static void add_packet_locked(struct sh_stream *stream, demux_packet_t *dp)
         } else if (queue->correct_pos) {
             ds->refreshing = dp->pos < queue->last_pos;
         } else {
-            ds->refreshing = false; // should not happen
+            ds->refreshing = false;  // should not happen
             MP_WARN(in, "stream %d: demux refreshing failed\n", ds->index);
         }
         drop = true;
@@ -2053,13 +2062,14 @@ static void add_packet_locked(struct sh_stream *stream, demux_packet_t *dp)
         int64_t pos = demux_cache_write(in->cache, dp);
         if (pos >= 0) {
             demux_packet_unref_contents(dp);
-            dp->is_cached = true;
+            dp->is_cached       = true;
             dp->cached_data.pos = pos;
         }
     }
 
     queue->correct_pos &= dp->pos >= 0 && dp->pos > queue->last_pos;
-    queue->correct_dts &= dp->dts != MP_NOPTS_VALUE && dp->dts > queue->last_dts;
+    queue->correct_dts &=
+        dp->dts != MP_NOPTS_VALUE && dp->dts > queue->last_dts;
     queue->last_pos = dp->pos;
     queue->last_dts = dp->dts;
     ds->global_correct_pos &= queue->correct_pos;
@@ -2068,7 +2078,7 @@ static void add_packet_locked(struct sh_stream *stream, demux_packet_t *dp)
     // (keep in mind that even if the reader went out of data, the queue is not
     // necessarily empty due to the backbuffer)
     if (!ds->reader_head && (!ds->skip_to_keyframe || dp->keyframe)) {
-        ds->reader_head = dp;
+        ds->reader_head      = dp;
         ds->skip_to_keyframe = false;
     }
 
@@ -2080,7 +2090,7 @@ static void add_packet_locked(struct sh_stream *stream, demux_packet_t *dp)
     if (queue->tail) {
         // next packet in stream
         queue->tail->next = dp;
-        queue->tail = dp;
+        queue->tail       = dp;
     } else {
         // first packet in stream
         queue->head = queue->tail = dp;
@@ -2097,16 +2107,20 @@ static void add_packet_locked(struct sh_stream *stream, demux_packet_t *dp)
     if (stream->type != STREAM_VIDEO && dp->pts == MP_NOPTS_VALUE)
         dp->pts = dp->dts;
 
-    if (ts != MP_NOPTS_VALUE && (ts > queue->last_ts || ts + 10 < queue->last_ts))
+    if (ts != MP_NOPTS_VALUE &&
+        (ts > queue->last_ts || ts + 10 < queue->last_ts))
         queue->last_ts = ts;
     if (ds->base_ts == MP_NOPTS_VALUE)
         ds->base_ts = queue->last_ts;
 
     const char *num_pkts = queue->head == queue->tail ? "1" : ">1";
-    uint64_t fw_bytes = get_forward_buffered_bytes(ds);
-    MP_TRACE(in, "append packet to %s: size=%zu pts=%f dts=%f pos=%"PRIi64" "
-             "[num=%s size=%zd]\n", stream_type_name(stream->type),
-             dp->len, dp->pts, dp->dts, dp->pos, num_pkts, (size_t)fw_bytes);
+    uint64_t fw_bytes    = get_forward_buffered_bytes(ds);
+    MP_TRACE(in,
+             "append packet to %s: size=%zu pts=%f dts=%f pos=%" PRIi64
+             " "
+             "[num=%s size=%zd]\n",
+             stream_type_name(stream->type), dp->len, dp->pts, dp->dts, dp->pos,
+             num_pkts, (size_t)fw_bytes);
 
     adjust_seek_range_on_packet(ds, dp);
 
@@ -2119,7 +2133,7 @@ static void add_packet_locked(struct sh_stream *stream, demux_packet_t *dp)
             ts = MP_PTS_MIN(ts, dp->end);
         if (ts > in->highest_av_pts) {
             in->highest_av_pts = ts;
-            double duration = in->highest_av_pts - in->d_thread->start_time;
+            double duration    = in->highest_av_pts - in->d_thread->start_time;
             if (duration > in->d_thread->duration) {
                 in->d_thread->duration = duration;
                 // (Don't wakeup user thread, would be too noisy.)
@@ -2154,8 +2168,8 @@ static bool lazy_stream_needs_wait(struct demux_stream *ds)
     struct demux_internal *in = ds->in;
     // Attempt to read until force_read_until was reached, or reading has
     // stopped for some reason (true EOF, queue overflow).
-    return !ds->eager && !in->back_demuxing &&
-           !in->eof && ds->force_read_until != MP_NOPTS_VALUE &&
+    return !ds->eager && !in->back_demuxing && !in->eof &&
+           ds->force_read_until != MP_NOPTS_VALUE &&
            (in->demux_ts == MP_NOPTS_VALUE ||
             in->demux_ts <= ds->force_read_until);
 }
@@ -2164,7 +2178,7 @@ static bool lazy_stream_needs_wait(struct demux_stream *ds)
 static bool read_packet(struct demux_internal *in)
 {
     bool was_reading = in->reading;
-    in->reading = false;
+    in->reading      = false;
 
     if (!was_reading || in->blocked || demux_cancel_test(in->d_thread))
         return false;
@@ -2184,19 +2198,19 @@ static bool read_packet(struct demux_internal *in)
             if (lazy_stream_needs_wait(ds)) {
                 read_more = true;
             } else {
-                mark_stream_eof(ds); // let playback continue
+                mark_stream_eof(ds);  // let playback continue
             }
         }
         refresh_more |= ds->refreshing;
         if (ds->eager && ds->queue->last_ts != MP_NOPTS_VALUE &&
             in->min_secs > 0 && ds->base_ts != MP_NOPTS_VALUE &&
-            ds->queue->last_ts >= ds->base_ts &&
-            !in->back_demuxing)
+            ds->queue->last_ts >= ds->base_ts && !in->back_demuxing)
         {
             if (ds->queue->last_ts - ds->base_ts <= in->hyst_secs)
                 in->hyst_active = false;
             if (!in->hyst_active)
-                prefetch_more |= ds->queue->last_ts - ds->base_ts < in->min_secs;
+                prefetch_more |=
+                    ds->queue->last_ts - ds->base_ts < in->min_secs;
         }
         total_fw_bytes += get_forward_buffered_bytes(ds);
     }
@@ -2216,14 +2230,13 @@ static bool read_packet(struct demux_internal *in)
                 struct demux_stream *ds = in->streams[n]->ds;
                 if (ds->selected) {
                     size_t num_pkts = 0;
-                    for (struct demux_packet *dp = ds->reader_head;
-                         dp; dp = dp->next)
+                    for (struct demux_packet *dp = ds->reader_head; dp;
+                         dp                      = dp->next)
                         num_pkts++;
                     uint64_t fw_bytes = get_forward_buffered_bytes(ds);
                     MP_WARN(in, "  %s/%d: %zd packets, %zd bytes%s%s\n",
-                            stream_type_name(ds->type), n,
-                            num_pkts, (size_t)fw_bytes,
-                            ds->eager ? "" : " (lazy)",
+                            stream_type_name(ds->type), n, num_pkts,
+                            (size_t)fw_bytes, ds->eager ? "" : " (lazy)",
                             ds->refreshing ? " (refreshing)" : "");
                 }
             }
@@ -2253,12 +2266,12 @@ static bool read_packet(struct demux_internal *in)
 
     // Actually read a packet. Drop the lock while doing so, because waiting
     // for disk or network I/O can take time.
-    in->reading = true;
-    in->after_seek = false;
+    in->reading             = true;
+    in->after_seek          = false;
     in->after_seek_to_start = false;
     mp_mutex_unlock(&in->lock);
 
-    struct demuxer *demux = in->d_thread;
+    struct demuxer *demux    = in->d_thread;
     struct demux_packet *pkt = NULL;
 
     bool eof = true;
@@ -2285,7 +2298,7 @@ static bool read_packet(struct demux_internal *in)
                 MP_VERBOSE(in, "EOF reached.\n");
             }
         }
-        in->eof = eof;
+        in->eof     = eof;
         in->reading = !eof;
     }
     return true;
@@ -2307,30 +2320,32 @@ static void prune_old_packets(struct demux_internal *in)
         uint64_t max_avail = in->max_bytes_bw;
         // Backward cache (if enabled at all) can use unused forward cache.
         // Still leave 1 byte free, so the read_packet logic doesn't get stuck.
-        if (max_avail && in->max_bytes > (fw_bytes + 1) && in->d_user->opts->donate_fw)
+        if (max_avail && in->max_bytes > (fw_bytes + 1) &&
+            in->d_user->opts->donate_fw)
             max_avail += in->max_bytes - (fw_bytes + 1);
         if (in->total_bytes - fw_bytes <= max_avail)
             break;
 
         // (Start from least recently used range.)
-        struct demux_cached_range *range = in->ranges[0];
-        double earliest_ts = MP_NOPTS_VALUE;
+        struct demux_cached_range *range     = in->ranges[0];
+        double earliest_ts                   = MP_NOPTS_VALUE;
         struct demux_stream *earliest_stream = NULL;
 
         for (int n = 0; n < range->num_streams; n++) {
             struct demux_queue *queue = range->streams[n];
-            struct demux_stream *ds = queue->ds;
+            struct demux_stream *ds   = queue->ds;
 
             if (queue->head && queue->head != ds->reader_head) {
                 struct demux_packet *dp = queue->head;
-                double ts = queue->seek_start;
+                double ts               = queue->seek_start;
                 // If the ts is NOPTS, the queue has no retainable packets, so
                 // delete them all. This code is not run when there's enough
-                // free space, so normally the queue gets the chance to build up.
-                bool prune_always =
-                    !in->seekable_cache || ts == MP_NOPTS_VALUE || !dp->keyframe;
+                // free space, so normally the queue gets the chance to build
+                // up.
+                bool prune_always = !in->seekable_cache ||
+                                    ts == MP_NOPTS_VALUE || !dp->keyframe;
                 if (prune_always || !earliest_stream || ts < earliest_ts) {
-                    earliest_ts = ts;
+                    earliest_ts     = ts;
                     earliest_stream = ds;
                     if (prune_always)
                         break;
@@ -2343,10 +2358,10 @@ static void prune_old_packets(struct demux_internal *in)
         if (!earliest_stream)
             break;
 
-        struct demux_stream *ds = earliest_stream;
+        struct demux_stream *ds   = earliest_stream;
         struct demux_queue *queue = range->streams[ds->index];
 
-        bool non_kf_prune = queue->head && !queue->head->keyframe;
+        bool non_kf_prune  = queue->head && !queue->head->keyframe;
         bool kf_was_pruned = false;
 
         while (queue->head && queue->head != ds->reader_head) {
@@ -2367,7 +2382,7 @@ static void prune_old_packets(struct demux_internal *in)
 
         // Need to update the seekable time range.
         if (kf_was_pruned) {
-            assert(!queue->keyframe_first); // it was just deleted, supposedly
+            assert(!queue->keyframe_first);  // it was just deleted, supposedly
 
             queue->keyframe_first = queue->head;
             // (May happen if reader_head stopped pruning the range, and there's
@@ -2420,17 +2435,16 @@ static void execute_trackswitch(struct demux_internal *in)
 
 static void execute_seek(struct demux_internal *in)
 {
-    int flags = in->seek_flags;
-    double pts = in->seek_pts;
-    in->eof = false;
-    in->seeking = false;
+    int flags               = in->seek_flags;
+    double pts              = in->seek_pts;
+    in->eof                 = false;
+    in->seeking             = false;
     in->seeking_in_progress = pts;
-    in->demux_ts = MP_NOPTS_VALUE;
+    in->demux_ts            = MP_NOPTS_VALUE;
     in->low_level_seeks += 1;
-    in->after_seek = true;
-    in->after_seek_to_start =
-        !(flags & (SEEK_FORWARD | SEEK_FACTOR)) &&
-        pts <= in->d_thread->start_time;
+    in->after_seek          = true;
+    in->after_seek_to_start = !(flags & (SEEK_FORWARD | SEEK_FACTOR)) &&
+                              pts <= in->d_thread->start_time;
 
     for (int n = 0; n < in->num_streams; n++)
         in->streams[n]->ds->queue->last_pos_fixup = -1;
@@ -2454,17 +2468,17 @@ static void execute_seek(struct demux_internal *in)
 
 static void update_opts(struct demuxer *demuxer)
 {
-    struct demux_opts *opts = demuxer->opts;
+    struct demux_opts *opts   = demuxer->opts;
     struct demux_internal *in = demuxer->in;
 
-    in->min_secs = opts->min_secs;
-    in->hyst_secs = opts->hyst_secs;
-    in->max_bytes = opts->max_bytes;
+    in->min_secs     = opts->min_secs;
+    in->hyst_secs    = opts->hyst_secs;
+    in->max_bytes    = opts->max_bytes;
     in->max_bytes_bw = opts->max_bytes_bw;
 
-    int seekable = opts->seekable_cache;
+    int seekable      = opts->seekable_cache;
     bool is_streaming = in->d_thread->is_streaming;
-    bool use_cache = is_streaming;
+    bool use_cache    = is_streaming;
     if (opts->enable_cache >= 0)
         use_cache = opts->enable_cache == 1;
 
@@ -2473,17 +2487,17 @@ static void update_opts(struct demuxer *demuxer)
         if (seekable < 0)
             seekable = 1;
     }
-    in->seekable_cache = seekable == 1;
+    in->seekable_cache           = seekable == 1;
     in->using_network_cache_opts = is_streaming && use_cache;
 
     if (!in->seekable_cache)
         in->max_bytes_bw = 0;
 
     if (!in->can_cache) {
-        in->seekable_cache = false;
-        in->min_secs = 0;
-        in->max_bytes = 1;
-        in->max_bytes_bw = 0;
+        in->seekable_cache           = false;
+        in->min_secs                 = 0;
+        in->max_bytes                = 1;
+        in->max_bytes_bw             = 0;
         in->using_network_cache_opts = false;
     }
 
@@ -2540,7 +2554,7 @@ static bool thread_work(struct demux_internal *in)
         return true;
     }
     if (read_packet(in))
-        return true; // read_packet unlocked, so recheck conditions
+        return true;  // read_packet unlocked, so recheck conditions
     if (mp_time_ns() >= in->next_cache_update) {
         update_cache(in);
         return true;
@@ -2641,12 +2655,12 @@ static int dequeue_packet(struct demux_stream *ds, double min_pts,
         struct demux_packet *pkt = demux_copy_packet(ds->sh->attached_picture);
         MP_HANDLE_OOM(pkt);
         pkt->stream = ds->sh->index;
-        *res = pkt;
+        *res        = pkt;
         return 1;
     }
 
     if (!in->reading && !in->eof) {
-        in->reading = true; // enable demuxer thread prefetching
+        in->reading = true;  // enable demuxer thread prefetching
         mp_cond_signal(&in->wakeup);
     }
 
@@ -2668,8 +2682,8 @@ static int dequeue_packet(struct demux_stream *ds, double min_pts,
         if (ds->back_range_started && !ds->back_range_count &&
             ((ds->reader_head && ds->reader_head->keyframe) || eof))
         {
-            ds->back_restarting = true;
-            ds->back_restart_eof = false;
+            ds->back_restarting   = true;
+            ds->back_restart_eof  = false;
             ds->back_restart_next = false;
 
             find_backward_restart_pos(ds);
@@ -2714,7 +2728,7 @@ static int dequeue_packet(struct demux_stream *ds, double min_pts,
             pkt->back_preroll = true;
 
         if (!ds->back_range_started) {
-            pkt->back_restart = true;
+            pkt->back_restart      = true;
             ds->back_range_started = true;
         }
     }
@@ -2728,12 +2742,12 @@ static int dequeue_packet(struct demux_stream *ds, double min_pts,
         // (possibly) reordered packet timestamps instead of realtime.
         double d = ts - ds->last_br_ts;
         if (ds->last_br_ts == MP_NOPTS_VALUE || d < 0) {
-            ds->bitrate = -1;
-            ds->last_br_ts = ts;
+            ds->bitrate       = -1;
+            ds->last_br_ts    = ts;
             ds->last_br_bytes = 0;
-        } else if (d >= 0.5) { // a window of least 500ms for UI purposes
-            ds->bitrate = ds->last_br_bytes / d;
-            ds->last_br_ts = ts;
+        } else if (d >= 0.5) {  // a window of least 500ms for UI purposes
+            ds->bitrate       = ds->last_br_bytes / d;
+            ds->last_br_ts    = ts;
             ds->last_br_bytes = 0;
         }
     }
@@ -2749,7 +2763,7 @@ static int dequeue_packet(struct demux_stream *ds, double min_pts,
 
     if (pkt->segmented) {
         pkt->start = MP_ADD_PTS(pkt->start, in->ts_offset);
-        pkt->end = MP_ADD_PTS(pkt->end, in->ts_offset);
+        pkt->end   = MP_ADD_PTS(pkt->end, in->ts_offset);
     }
 
     prune_old_packets(in);
@@ -2773,15 +2787,16 @@ int demux_read_packet_async(struct sh_stream *sh, struct demux_packet **out_pkt)
     return demux_read_packet_async_until(sh, MP_NOPTS_VALUE, out_pkt);
 }
 
-// Like demux_read_packet_async(). They are the same for min_pts==MP_NOPTS_VALUE.
-// If min_pts is set, and the stream is lazily read (eager=false, interleaved
-// subtitles), then return 0 until demuxing has reached min_pts, or the queue
-// overflowed, or EOF was reached, or a packet was read for this stream.
+// Like demux_read_packet_async(). They are the same for
+// min_pts==MP_NOPTS_VALUE. If min_pts is set, and the stream is lazily read
+// (eager=false, interleaved subtitles), then return 0 until demuxing has
+// reached min_pts, or the queue overflowed, or EOF was reached, or a packet was
+// read for this stream.
 int demux_read_packet_async_until(struct sh_stream *sh, double min_pts,
                                   struct demux_packet **out_pkt)
 {
     struct demux_stream *ds = sh ? sh->ds : NULL;
-    *out_pkt = NULL;
+    *out_pkt                = NULL;
     if (!ds)
         return -1;
     struct demux_internal *in = ds->in;
@@ -2805,13 +2820,14 @@ struct demux_packet *demux_read_any_packet(struct demuxer *demuxer)
 {
     struct demux_internal *in = demuxer->in;
     mp_mutex_lock(&in->lock);
-    assert(!in->threading); // doesn't work with threading
+    assert(!in->threading);  // doesn't work with threading
     struct demux_packet *out_pkt = NULL;
-    bool read_more = true;
+    bool read_more               = true;
     while (read_more && !in->blocked) {
         bool all_eof = true;
         for (int n = 0; n < in->num_streams; n++) {
-            int r = dequeue_packet(in->streams[n]->ds, MP_NOPTS_VALUE, &out_pkt);
+            int r =
+                dequeue_packet(in->streams[n]->ds, MP_NOPTS_VALUE, &out_pkt);
             if (r > 0)
                 goto done;
             if (r == 0)
@@ -2833,8 +2849,8 @@ int demuxer_help(struct mp_log *log, const m_option_t *opt, struct bstr name)
     mp_info(log, "Available demuxers:\n");
     mp_info(log, " demuxer:   info:\n");
     for (i = 0; demuxer_list[i]; i++) {
-        mp_info(log, "%10s  %s\n",
-                demuxer_list[i]->name, demuxer_list[i]->desc);
+        mp_info(log, "%10s  %s\n", demuxer_list[i]->name,
+                demuxer_list[i]->desc);
     }
     mp_info(log, "\n");
 
@@ -2844,9 +2860,9 @@ int demuxer_help(struct mp_log *log, const m_option_t *opt, struct bstr name)
 static const char *d_level(enum demux_check level)
 {
     switch (level) {
-    case DEMUX_CHECK_FORCE:  return "force";
+    case DEMUX_CHECK_FORCE: return "force";
     case DEMUX_CHECK_UNSAFE: return "unsafe";
-    case DEMUX_CHECK_REQUEST:return "request";
+    case DEMUX_CHECK_REQUEST: return "request";
     case DEMUX_CHECK_NORMAL: return "normal";
     }
     MP_ASSERT_UNREACHABLE();
@@ -2906,7 +2922,7 @@ static int decode_peak(struct mp_log *log, struct mp_tags *tags,
 static struct replaygain_data *decode_rgain(struct mp_log *log,
                                             struct mp_tags *tags)
 {
-    struct replaygain_data rg = {0};
+    struct replaygain_data rg = { 0 };
 
     // Set values in *rg, using track gain as a fallback for album gain if the
     // latter is not present. This behavior matches that in demux/demux_lavf.c's
@@ -2915,7 +2931,8 @@ static struct replaygain_data *decode_rgain(struct mp_log *log,
     if (decode_gain(log, tags, "REPLAYGAIN_TRACK_GAIN", &rg.track_gain) >= 0 &&
         decode_peak(log, tags, "REPLAYGAIN_TRACK_PEAK", &rg.track_peak) >= 0)
     {
-        if (decode_gain(log, tags, "REPLAYGAIN_ALBUM_GAIN", &rg.album_gain) < 0 ||
+        if (decode_gain(log, tags, "REPLAYGAIN_ALBUM_GAIN", &rg.album_gain) <
+                0 ||
             decode_peak(log, tags, "REPLAYGAIN_ALBUM_PEAK", &rg.album_peak) < 0)
         {
             // Album gain is undefined; fall back to track gain.
@@ -2975,27 +2992,27 @@ static void demux_copy(struct demuxer *dst, struct demuxer *src)
     // Note that we do as shallow copies as possible. We expect the data
     // that is not-copied (only referenced) to be immutable.
     // This implies e.g. that no chapters are added after initialization.
-    dst->chapters = src->chapters;
-    dst->num_chapters = src->num_chapters;
-    dst->editions = src->editions;
-    dst->num_editions = src->num_editions;
-    dst->edition = src->edition;
-    dst->attachments = src->attachments;
-    dst->num_attachments = src->num_attachments;
-    dst->matroska_data = src->matroska_data;
-    dst->playlist = src->playlist;
-    dst->seekable = src->seekable;
+    dst->chapters           = src->chapters;
+    dst->num_chapters       = src->num_chapters;
+    dst->editions           = src->editions;
+    dst->num_editions       = src->num_editions;
+    dst->edition            = src->edition;
+    dst->attachments        = src->attachments;
+    dst->num_attachments    = src->num_attachments;
+    dst->matroska_data      = src->matroska_data;
+    dst->playlist           = src->playlist;
+    dst->seekable           = src->seekable;
     dst->partially_seekable = src->partially_seekable;
-    dst->filetype = src->filetype;
+    dst->filetype           = src->filetype;
     dst->ts_resets_possible = src->ts_resets_possible;
-    dst->fully_read = src->fully_read;
-    dst->start_time = src->start_time;
-    dst->duration = src->duration;
-    dst->is_network = src->is_network;
-    dst->is_streaming = src->is_streaming;
-    dst->stream_origin = src->stream_origin;
-    dst->priv = src->priv;
-    dst->metadata = mp_tags_dup(dst, src->metadata);
+    dst->fully_read         = src->fully_read;
+    dst->start_time         = src->start_time;
+    dst->duration           = src->duration;
+    dst->is_network         = src->is_network;
+    dst->is_streaming       = src->is_streaming;
+    dst->stream_origin      = src->stream_origin;
+    dst->priv               = src->priv;
+    dst->metadata           = mp_tags_dup(dst, src->metadata);
 }
 
 // Update metadata after initialization. If sh==NULL, it's global metadata,
@@ -3022,10 +3039,10 @@ static void add_timed_metadata(struct demux_internal *in, struct mp_tags *tags,
     }
 
     struct timed_metadata *tm = talloc_zero(NULL, struct timed_metadata);
-    *tm = (struct timed_metadata){
-        .pts = pts,
-        .tags = mp_tags_dup(tm, tags),
-        .from_stream = !!sh,
+    *tm                       = (struct timed_metadata){
+                              .pts         = pts,
+                              .tags        = mp_tags_dup(tm, tags),
+                              .from_stream = !!sh,
     };
     MP_TARRAY_APPEND(r, r->metadata, r->num_metadata, tm);
 }
@@ -3043,7 +3060,7 @@ void demux_stream_tags_changed(struct demuxer *demuxer, struct sh_stream *sh,
     struct demux_internal *in = demuxer->in;
     assert(demuxer == in->d_thread);
     struct demux_stream *ds = sh ? sh->ds : NULL;
-    assert(!sh || ds); // stream must have been added
+    assert(!sh || ds);  // stream must have been added
 
     mp_mutex_lock(&in->lock);
 
@@ -3061,7 +3078,7 @@ void demux_stream_tags_changed(struct demuxer *demuxer, struct sh_stream *sh,
 // (It will be propagated to the user as timed metadata.)
 void demux_metadata_changed(demuxer_t *demuxer)
 {
-    assert(demuxer == demuxer->in->d_thread); // call from demuxer impl. only
+    assert(demuxer == demuxer->in->d_thread);  // call from demuxer impl. only
     struct demux_internal *in = demuxer->in;
 
     mp_mutex_lock(&in->lock);
@@ -3080,9 +3097,9 @@ static void update_final_metadata(demuxer_t *demuxer, struct timed_metadata *tm)
     // Often useful for audio-only files, which have metadata in the audio track
     // metadata instead of the main metadata, but can also have cover art
     // metadata (which libavformat likes to treat as video streams).
-    int astreams = 0;
+    int astreams   = 0;
     int astream_id = -1;
-    int vstreams = 0;
+    int vstreams   = 0;
     for (int n = 0; n < in->num_streams; n++) {
         struct sh_stream *sh = in->streams[n];
         if (sh->type == STREAM_VIDEO && !sh->attached_picture)
@@ -3121,8 +3138,8 @@ static struct timed_metadata *lookup_timed_metadata(struct demux_internal *in,
         return NULL;
 
     int start = 1;
-    int i = in->cached_metadata_index;
-    if (i >= 0 &&  i < r->num_metadata && r->metadata[i]->pts <= pts)
+    int i     = in->cached_metadata_index;
+    if (i >= 0 && i < r->num_metadata && r->metadata[i]->pts <= pts)
         start = i + 1;
 
     in->cached_metadata_index = r->num_metadata - 1;
@@ -3154,7 +3171,8 @@ void demux_update(demuxer_t *demuxer, double pts)
 
     pts = MP_ADD_PTS(pts, -in->ts_offset);
 
-    struct timed_metadata *prev = lookup_timed_metadata(in, in->last_playback_pts);
+    struct timed_metadata *prev =
+        lookup_timed_metadata(in, in->last_playback_pts);
     struct timed_metadata *cur = lookup_timed_metadata(in, pts);
     if (prev != cur || in->force_metadata_update) {
         in->force_metadata_update = false;
@@ -3180,7 +3198,7 @@ static void demux_init_cuesheet(struct demuxer *demuxer)
         return;
 
     struct sh_stream *sh = demuxer->in->metadata_stream;
-    char *cue = mp_tags_get_str(demuxer->metadata, "cuesheet");
+    char *cue            = mp_tags_get_str(demuxer->metadata, "cuesheet");
     if (!cue && sh)
         cue = mp_tags_get_str(sh->tags, "cuesheet");
     if (!cue)
@@ -3189,7 +3207,8 @@ static void demux_init_cuesheet(struct demuxer *demuxer)
     struct cue_file *f = mp_parse_cue(bstr0(cue));
     if (f) {
         if (mp_check_embedded_cue(f) < 0) {
-            MP_WARN(demuxer, "Embedded cue sheet references more than one file. "
+            MP_WARN(demuxer,
+                    "Embedded cue sheet references more than one file. "
                     "Ignoring it.\n");
         } else {
             for (int n = 0; n < f->num_tracks; n++) {
@@ -3218,7 +3237,7 @@ void demux_close_stream(struct demuxer *demuxer)
 
     MP_VERBOSE(demuxer, "demuxer read all data; closing stream\n");
     free_stream(demuxer->stream);
-    demuxer->stream = NULL;
+    demuxer->stream    = NULL;
     in->d_user->stream = NULL;
 }
 
@@ -3273,41 +3292,41 @@ static struct demuxer *open_given_type(struct mpv_global *global,
     struct m_config_cache *opts_cache =
         m_config_cache_alloc(demuxer, global, &demux_conf);
     struct demux_opts *opts = opts_cache->opts;
-    *demuxer = (struct demuxer) {
-        .desc = desc,
-        .stream = stream,
-        .cancel = sinfo->cancel,
-        .seekable = sinfo->seekable,
-        .filepos = -1,
-        .global = global,
-        .log = mp_log_new(demuxer, log, desc->name),
-        .glog = log,
-        .filename = talloc_strdup(demuxer, sinfo->filename),
-        .is_network = sinfo->is_network,
-        .is_streaming = sinfo->is_streaming,
-        .stream_origin = sinfo->stream_origin,
-        .access_references = opts->access_references,
-        .opts = opts,
-        .opts_cache = opts_cache,
-        .events = DEMUX_EVENT_ALL,
-        .duration = -1,
+    *demuxer                = (struct demuxer){
+                       .desc              = desc,
+                       .stream            = stream,
+                       .cancel            = sinfo->cancel,
+                       .seekable          = sinfo->seekable,
+                       .filepos           = -1,
+                       .global            = global,
+                       .log               = mp_log_new(demuxer, log, desc->name),
+                       .glog              = log,
+                       .filename          = talloc_strdup(demuxer, sinfo->filename),
+                       .is_network        = sinfo->is_network,
+                       .is_streaming      = sinfo->is_streaming,
+                       .stream_origin     = sinfo->stream_origin,
+                       .access_references = opts->access_references,
+                       .opts              = opts,
+                       .opts_cache        = opts_cache,
+                       .events            = DEMUX_EVENT_ALL,
+                       .duration          = -1,
     };
 
     struct demux_internal *in = demuxer->in = talloc_ptrtype(demuxer, in);
-    *in = (struct demux_internal){
-        .global = global,
-        .log = demuxer->log,
-        .stats = stats_ctx_create(in, global, "demuxer"),
-        .can_cache = params && params->is_top_level,
-        .can_record = params && params->stream_record,
-        .d_thread = talloc(demuxer, struct demuxer),
-        .d_user = demuxer,
-        .after_seek = true, // (assumed identical to initial demuxer state)
-        .after_seek_to_start = true,
-        .highest_av_pts = MP_NOPTS_VALUE,
-        .seeking_in_progress = MP_NOPTS_VALUE,
-        .demux_ts = MP_NOPTS_VALUE,
-        .owns_stream = !params->external_stream,
+    *in                                     = (struct demux_internal){
+                                            .global     = global,
+                                            .log        = demuxer->log,
+                                            .stats      = stats_ctx_create(in, global, "demuxer"),
+                                            .can_cache  = params && params->is_top_level,
+                                            .can_record = params && params->stream_record,
+                                            .d_thread   = talloc(demuxer, struct demuxer),
+                                            .d_user     = demuxer,
+                                            .after_seek = true,  // (assumed identical to initial demuxer state)
+                                            .after_seek_to_start = true,
+                                            .highest_av_pts      = MP_NOPTS_VALUE,
+                                            .seeking_in_progress = MP_NOPTS_VALUE,
+                                            .demux_ts            = MP_NOPTS_VALUE,
+                                            .owns_stream         = !params->external_stream,
     };
     mp_mutex_init(&in->lock);
     mp_cond_init(&in->wakeup);
@@ -3316,14 +3335,14 @@ static struct demuxer *open_given_type(struct mpv_global *global,
 
     in->d_thread->metadata = talloc_zero(in->d_thread, struct mp_tags);
 
-    mp_dbg(log, "Trying demuxer: %s (force-level: %s)\n",
-           desc->name, d_level(check));
+    mp_dbg(log, "Trying demuxer: %s (force-level: %s)\n", desc->name,
+           d_level(check));
 
     if (stream)
         stream_seek(stream, 0);
 
-    in->d_thread->params = params; // temporary during open()
-    int ret = demuxer->desc->open(in->d_thread, check);
+    in->d_thread->params = params;  // temporary during open()
+    int ret              = demuxer->desc->open(in->d_thread, check);
     if (ret >= 0) {
         in->d_thread->params = NULL;
         if (in->d_thread->filetype)
@@ -3334,8 +3353,9 @@ static struct demuxer *open_given_type(struct mpv_global *global,
         if (!in->d_thread->seekable)
             mp_verbose(log, "Stream is not seekable.\n");
         if (!in->d_thread->seekable && opts->force_seekable) {
-            mp_warn(log, "Not seekable, but enabling seeking on user request.\n");
-            in->d_thread->seekable = true;
+            mp_warn(log,
+                    "Not seekable, but enabling seeking on user request.\n");
+            in->d_thread->seekable           = true;
             in->d_thread->partially_seekable = true;
         }
         demux_init_cuesheet(in->d_thread);
@@ -3350,15 +3370,14 @@ static struct demuxer *open_given_type(struct mpv_global *global,
         if (!(params && params->disable_timeline)) {
             struct timeline *tl = timeline_load(global, log, demuxer);
             if (tl) {
-                struct demuxer_params params2 = {0};
-                params2.timeline = tl;
-                params2.is_top_level = params && params->is_top_level;
-                params2.stream_record = params && params->stream_record;
-                sub =
-                    open_given_type(global, log, &demuxer_desc_timeline,
-                                    NULL, sinfo, &params2, DEMUX_CHECK_FORCE);
+                struct demuxer_params params2 = { 0 };
+                params2.timeline              = tl;
+                params2.is_top_level          = params && params->is_top_level;
+                params2.stream_record         = params && params->stream_record;
+                sub = open_given_type(global, log, &demuxer_desc_timeline, NULL,
+                                      sinfo, &params2, DEMUX_CHECK_FORCE);
                 if (sub) {
-                    in->can_cache = false;
+                    in->can_cache  = false;
                     in->can_record = false;
                 } else {
                     timeline_destroy(tl);
@@ -3381,9 +3400,9 @@ static struct demuxer *open_given_type(struct mpv_global *global,
     return NULL;
 }
 
-static const int d_normal[]  = {DEMUX_CHECK_NORMAL, DEMUX_CHECK_UNSAFE, -1};
-static const int d_request[] = {DEMUX_CHECK_REQUEST, -1};
-static const int d_force[]   = {DEMUX_CHECK_FORCE, -1};
+static const int d_normal[]  = { DEMUX_CHECK_NORMAL, DEMUX_CHECK_UNSAFE, -1 };
+static const int d_request[] = { DEMUX_CHECK_REQUEST, -1 };
+static const int d_force[]   = { DEMUX_CHECK_FORCE, -1 };
 
 // params can be NULL
 // This may free the stream parameter on success.
@@ -3392,19 +3411,19 @@ static struct demuxer *demux_open(struct stream *stream,
                                   struct demuxer_params *params,
                                   struct mpv_global *global)
 {
-    const int *check_levels = d_normal;
+    const int *check_levels               = d_normal;
     const struct demuxer_desc *check_desc = NULL;
-    struct mp_log *log = mp_log_new(NULL, global->log, "!demux");
+    struct mp_log *log      = mp_log_new(NULL, global->log, "!demux");
     struct demuxer *demuxer = NULL;
-    char *force_format = params ? params->force_format : NULL;
+    char *force_format      = params ? params->force_format : NULL;
 
     struct parent_stream_info sinfo = {
-        .seekable = stream->seekable,
-        .is_network = stream->is_network,
-        .is_streaming = stream->streaming,
+        .seekable      = stream->seekable,
+        .is_network    = stream->is_network,
+        .is_streaming  = stream->streaming,
         .stream_origin = stream->stream_origin,
-        .cancel = cancel,
-        .filename = talloc_strdup(NULL, stream->url),
+        .cancel        = cancel,
+        .filename      = talloc_strdup(NULL, stream->url),
     };
 
     if (!force_format)
@@ -3454,13 +3473,14 @@ done:
 
 static struct stream *create_webshit_concat_stream(struct mpv_global *global,
                                                    struct mp_cancel *c,
-                                                   bstr init, struct stream *real)
+                                                   bstr init,
+                                                   struct stream *real)
 {
     struct stream *mem = stream_memory_open(global, init.start, init.len);
     assert(mem);
 
-    struct stream *streams[2] = {mem, real};
-    struct stream *concat = stream_concat_open(global, c, streams, 2);
+    struct stream *streams[2] = { mem, real };
+    struct stream *concat     = stream_concat_open(global, c, streams, 2);
     if (!concat) {
         free_stream(mem);
         free_stream(real);
@@ -3474,8 +3494,7 @@ static struct stream *create_webshit_concat_stream(struct mpv_global *global,
 // demuxer->cancel is not the cancel parameter, but is its own object that will
 // be a slave (mp_cancel_set_parent()) to provided cancel object.
 // demuxer->cancel is automatically freed.
-struct demuxer *demux_open_url(const char *url,
-                               struct demuxer_params *params,
+struct demuxer *demux_open_url(const char *url, struct demuxer_params *params,
                                struct mp_cancel *cancel,
                                struct mpv_global *global)
 {
@@ -3486,8 +3505,8 @@ struct demuxer *demux_open_url(const char *url,
         mp_cancel_set_parent(priv_cancel, cancel);
     struct stream *s = params->external_stream;
     if (!s) {
-        s = stream_create(url, STREAM_READ | params->stream_flags,
-                          priv_cancel, global);
+        s = stream_create(url, STREAM_READ | params->stream_flags, priv_cancel,
+                          global);
         if (s && params->init_fragment.len) {
             s = create_webshit_concat_stream(global, priv_cancel,
                                              params->init_fragment, s);
@@ -3523,10 +3542,10 @@ void demux_flush(demuxer_t *demuxer)
     free_empty_cached_ranges(in);
     for (int n = 0; n < in->num_streams; n++) {
         struct demux_stream *ds = in->streams[n]->ds;
-        ds->refreshing = false;
-        ds->eof = false;
+        ds->refreshing          = false;
+        ds->eof                 = false;
     }
-    in->eof = false;
+    in->eof     = false;
     in->seeking = false;
     mp_mutex_unlock(&in->lock);
 }
@@ -3554,10 +3573,11 @@ static void switch_current_range(struct demux_internal *in,
         for (int n = 0; n < in->num_streams; n++) {
             struct demux_stream *ds = in->streams[n]->ds;
             // This is needed to resume or join the range at all.
-            if (ds->selected && !(ds->global_correct_dts ||
-                                  ds->global_correct_pos))
+            if (ds->selected &&
+                !(ds->global_correct_dts || ds->global_correct_pos))
             {
-                MP_VERBOSE(in, "discarding unseekable range due to stream %d\n", n);
+                MP_VERBOSE(in, "discarding unseekable range due to stream %d\n",
+                           n);
                 clear_cached_range(in, old);
                 break;
             }
@@ -3568,9 +3588,9 @@ static void switch_current_range(struct demux_internal *in,
     for (int n = 0; n < in->num_streams; n++) {
         struct demux_stream *ds = in->streams[n]->ds;
 
-        ds->queue = range->streams[n];
+        ds->queue      = range->streams[n];
         ds->refreshing = false;
-        ds->eof = false;
+        ds->eof        = false;
     }
 
     // No point in keeping any junk (especially if old current_range is empty).
@@ -3587,7 +3607,7 @@ static struct demux_packet *search_index(struct demux_queue *queue, double pts)
     size_t b = queue->num_index;
 
     while (a < b) {
-        size_t m = a + (b - a) / 2;
+        size_t m              = a + (b - a) / 2;
         struct index_entry *e = &QUEUE_INDEX_ENTRY(queue, m);
 
         bool m_ok = e->pts <= pts;
@@ -3615,7 +3635,7 @@ static struct demux_packet *find_seek_target(struct demux_queue *queue,
         start = queue->head;
 
     struct demux_packet *target = NULL;
-    struct demux_packet *next = NULL;
+    struct demux_packet *next   = NULL;
     for (struct demux_packet *dp = start; dp; dp = next) {
         next = dp->next;
         if (!dp->keyframe)
@@ -3648,8 +3668,8 @@ static struct demux_packet *find_seek_target(struct demux_queue *queue,
 
 // Return a cache range for the given pts/flags, or NULL if none available.
 // must be called locked
-static struct demux_cached_range *find_cache_seek_range(struct demux_internal *in,
-                                                        double pts, int flags)
+static struct demux_cached_range *find_cache_seek_range(
+    struct demux_internal *in, double pts, int flags)
 {
     // Note about queued low level seeks: in->seeking can be true here, and it
     // might come from a previous resume seek to the current range. If we end
@@ -3663,8 +3683,8 @@ static struct demux_cached_range *find_cache_seek_range(struct demux_internal *i
     for (int n = 0; n < in->num_ranges; n++) {
         struct demux_cached_range *r = in->ranges[n];
         if (r->seek_start != MP_NOPTS_VALUE) {
-            MP_VERBOSE(in, "cached range %d: %f <-> %f (bof=%d, eof=%d)\n",
-                       n, r->seek_start, r->seek_end, r->is_bof, r->is_eof);
+            MP_VERBOSE(in, "cached range %d: %f <-> %f (bof=%d, eof=%d)\n", n,
+                       r->seek_start, r->seek_end, r->is_bof, r->is_eof);
 
             if ((pts >= r->seek_start || r->is_bof) &&
                 (pts <= r->seek_end || r->is_eof))
@@ -3694,7 +3714,7 @@ static void adjust_cache_seek_target(struct demux_internal *in,
         return;
 
     for (int n = 0; n < in->num_streams; n++) {
-        struct demux_stream *ds = in->streams[n]->ds;
+        struct demux_stream *ds   = in->streams[n]->ds;
         struct demux_queue *queue = range->streams[n];
         if (ds->selected && ds->type == STREAM_VIDEO) {
             struct demux_packet *target = find_seek_target(queue, *pts, *flags);
@@ -3702,8 +3722,8 @@ static void adjust_cache_seek_target(struct demux_internal *in,
                 double target_pts;
                 compute_keyframe_times(target, &target_pts, NULL);
                 if (target_pts != MP_NOPTS_VALUE) {
-                    MP_VERBOSE(in, "adjust seek target %f -> %f\n",
-                               *pts, target_pts);
+                    MP_VERBOSE(in, "adjust seek target %f -> %f\n", *pts,
+                               target_pts);
                     // (We assume the find_seek_target() call will return
                     // the same target for the video stream.)
                     *pts = target_pts;
@@ -3719,23 +3739,24 @@ static void adjust_cache_seek_target(struct demux_internal *in,
 // range must be non-NULL and from find_cache_seek_range() using the same pts
 // and flags, before any other changes to the cached state
 static void execute_cache_seek(struct demux_internal *in,
-                               struct demux_cached_range *range,
-                               double pts, int flags)
+                               struct demux_cached_range *range, double pts,
+                               int flags)
 {
     adjust_cache_seek_target(in, range, &pts, &flags);
 
     for (int n = 0; n < in->num_streams; n++) {
-        struct demux_stream *ds = in->streams[n]->ds;
+        struct demux_stream *ds   = in->streams[n]->ds;
         struct demux_queue *queue = range->streams[n];
 
         struct demux_packet *target = find_seek_target(queue, pts, flags);
-        ds->reader_head = target;
-        ds->skip_to_keyframe = !target;
+        ds->reader_head             = target;
+        ds->skip_to_keyframe        = !target;
         if (ds->reader_head)
-            ds->base_ts = MP_PTS_OR_DEF(ds->reader_head->pts, ds->reader_head->dts);
+            ds->base_ts =
+                MP_PTS_OR_DEF(ds->reader_head->pts, ds->reader_head->dts);
 
-        MP_VERBOSE(in, "seeking stream %d (%s) to ",
-                   n, stream_type_name(ds->type));
+        MP_VERBOSE(in, "seeking stream %d (%s) to ", n,
+                   stream_type_name(ds->type));
 
         if (target) {
             MP_VERBOSE(in, "packet %f/%f\n", target->pts, target->dts);
@@ -3749,9 +3770,9 @@ static void execute_cache_seek(struct demux_internal *in,
     if (in->current_range != range) {
         switch_current_range(in, range);
 
-        in->seeking = true;
+        in->seeking    = true;
         in->seek_flags = SEEK_HR;
-        in->seek_pts = range->seek_end - 1.0;
+        in->seek_pts   = range->seek_end - 1.0;
 
         // When new packets are being appended, they could overlap with the old
         // range due to demuxer seek imprecisions, or because the queue contains
@@ -3777,9 +3798,9 @@ static void switch_to_fresh_cache_range(struct demux_internal *in)
     }
 
     struct demux_cached_range *range = talloc_ptrtype(NULL, range);
-    *range = (struct demux_cached_range){
-        .seek_start = MP_NOPTS_VALUE,
-        .seek_end = MP_NOPTS_VALUE,
+    *range                           = (struct demux_cached_range){
+                                  .seek_start = MP_NOPTS_VALUE,
+                                  .seek_end   = MP_NOPTS_VALUE,
     };
     MP_TARRAY_APPEND(in, in->ranges, in->num_ranges, range);
     add_missing_streams(in, range);
@@ -3840,8 +3861,8 @@ static bool queue_seek(struct demux_internal *in, double seek_pts, int flags,
         }
     }
 
-    in->eof = false;
-    in->reading = false;
+    in->eof           = false;
+    in->reading       = false;
     in->back_demuxing = set_backwards;
 
     clear_reader_state(in, clear_back_state);
@@ -3853,9 +3874,9 @@ static bool queue_seek(struct demux_internal *in, double seek_pts, int flags,
     } else {
         switch_to_fresh_cache_range(in);
 
-        in->seeking = true;
+        in->seeking    = true;
         in->seek_flags = flags;
-        in->seek_pts = seek_pts;
+        in->seek_pts   = seek_pts;
     }
 
     for (int n = 0; n < in->num_streams; n++) {
@@ -3897,14 +3918,13 @@ struct sh_stream *demuxer_stream_by_demuxer_id(struct demuxer *d,
 // On a switch, it seeks back, and then grabs all packets that were
 // "missing" from the packet queue of the newly selected stream.
 static void initiate_refresh_seek(struct demux_internal *in,
-                                  struct demux_stream *stream,
-                                  double start_ts)
+                                  struct demux_stream *stream, double start_ts)
 {
     struct demuxer *demux = in->d_thread;
-    bool seekable = demux->desc->seek && demux->seekable &&
-                    !demux->partially_seekable;
+    bool seekable =
+        demux->desc->seek && demux->seekable && !demux->partially_seekable;
 
-    bool normal_seek = true;
+    bool normal_seek      = true;
     bool refresh_possible = true;
     for (int n = 0; n < in->num_streams; n++) {
         struct demux_stream *ds = in->streams[n]->ds;
@@ -3944,28 +3964,29 @@ static void initiate_refresh_seek(struct demux_internal *in,
             ds_clear_reader_queue_state(ds);
             clear_queue(ds->queue);
 
-            // Streams which didn't have any packets yet will return all packets,
-            // other streams return packets only starting from the last position.
-            if (ds->selected && (ds->last_ret_pos != -1 ||
-                                 ds->last_ret_dts != MP_NOPTS_VALUE))
+            // Streams which didn't have any packets yet will return all
+            // packets, other streams return packets only starting from the last
+            // position.
+            if (ds->selected &&
+                (ds->last_ret_pos != -1 || ds->last_ret_dts != MP_NOPTS_VALUE))
             {
-                ds->refreshing = true;
+                ds->refreshing         = true;
                 ds->queue->correct_dts = correct_dts;
                 ds->queue->correct_pos = correct_pos;
-                ds->queue->last_pos = ds->last_ret_pos;
-                ds->queue->last_dts = ds->last_ret_dts;
+                ds->queue->last_pos    = ds->last_ret_pos;
+                ds->queue->last_dts    = ds->last_ret_dts;
             }
 
             update_seek_ranges(in->current_range);
         }
 
-        start_ts -= 1.0; // small offset to get correct overlap
+        start_ts -= 1.0;  // small offset to get correct overlap
     }
 
     MP_VERBOSE(in, "refresh seek to %f\n", start_ts);
-    in->seeking = true;
+    in->seeking    = true;
     in->seek_flags = SEEK_HR;
-    in->seek_pts = start_ts;
+    in->seek_pts   = start_ts;
 }
 
 // Called locked.
@@ -3973,7 +3994,7 @@ static void refresh_track(struct demux_internal *in, struct sh_stream *stream,
                           double ref_pts)
 {
     struct demux_stream *ds = stream->ds;
-    ref_pts = MP_ADD_PTS(ref_pts, -in->ts_offset);
+    ref_pts                 = MP_ADD_PTS(ref_pts, -in->ts_offset);
 
     if (in->back_demuxing)
         ds->back_seek_pos = ref_pts;
@@ -3987,14 +4008,18 @@ static void refresh_track(struct demux_internal *in, struct sh_stream *stream,
             break;
         }
     }
-    avoid_refresh = avoid_refresh && !(in->after_seek && !in->after_seek_to_start);
+    avoid_refresh =
+        avoid_refresh && !(in->after_seek && !in->after_seek_to_start);
     // Allow refresh seek for non-video streams, even if no packets have
     // ever been read yet or after seeking. This is necessary because:
-    // - A-V sync targets may come from different demuxers, so enabling an external
-    //   audio track for the first time can cause desync since a seek is not performed.
-    // - If cache is enabled and a seek causes some new data to be cached, the demuxer
-    //   is sought to the end of cache after cache joining. Switching track immediately
-    //   after this also causes the same problem.
+    // - A-V sync targets may come from different demuxers, so enabling an
+    // external
+    //   audio track for the first time can cause desync since a seek is not
+    //   performed.
+    // - If cache is enabled and a seek causes some new data to be cached, the
+    // demuxer
+    //   is sought to the end of cache after cache joining. Switching track
+    //   immediately after this also causes the same problem.
     if (!in->after_seek || (ds->type != STREAM_VIDEO && !avoid_refresh)) {
         MP_VERBOSE(in, "refresh track %d (%s)\n", stream->index,
                    stream_type_name(ds->type));
@@ -4009,11 +4034,12 @@ void demuxer_select_track(struct demuxer *demuxer, struct sh_stream *stream,
                           double ref_pts, bool selected)
 {
     struct demux_internal *in = demuxer->in;
-    struct demux_stream *ds = stream->ds;
+    struct demux_stream *ds   = stream->ds;
     mp_mutex_lock(&in->lock);
     // don't flush buffers if stream is already selected / unselected
     if (ds->selected != selected) {
-        MP_VERBOSE(in, "%sselect track %d\n", selected ? "" : "de", stream->index);
+        MP_VERBOSE(in, "%sselect track %d\n", selected ? "" : "de",
+                   stream->index);
         ds->selected = selected;
         update_stream_selection_state(in, ds);
         in->tracks_switched = true;
@@ -4034,7 +4060,7 @@ void demuxer_refresh_track(struct demuxer *demuxer, struct sh_stream *stream,
                            double ref_pts)
 {
     struct demux_internal *in = demuxer->in;
-    struct demux_stream *ds = stream->ds;
+    struct demux_stream *ds   = stream->ds;
     mp_mutex_lock(&in->lock);
     if (ds->selected) {
         update_stream_selection_state(in, ds);
@@ -4058,13 +4084,13 @@ bool demux_stream_is_selected(struct sh_stream *stream)
     return r;
 }
 
-void demux_set_stream_wakeup_cb(struct sh_stream *sh,
-                                void (*cb)(void *ctx), void *ctx)
+void demux_set_stream_wakeup_cb(struct sh_stream *sh, void (*cb)(void *ctx),
+                                void *ctx)
 {
     mp_mutex_lock(&sh->ds->in->lock);
-    sh->ds->wakeup_cb = cb;
+    sh->ds->wakeup_cb     = cb;
     sh->ds->wakeup_cb_ctx = ctx;
-    sh->ds->need_wakeup = true;
+    sh->ds->need_wakeup   = true;
     mp_mutex_unlock(&sh->ds->in->lock);
 }
 
@@ -4076,10 +4102,11 @@ int demuxer_add_attachment(demuxer_t *demuxer, char *name, char *type,
                                               struct demux_attachment,
                                               demuxer->num_attachments + 32);
 
-    struct demux_attachment *att = &demuxer->attachments[demuxer->num_attachments];
-    att->name = talloc_strdup(demuxer->attachments, name);
-    att->type = talloc_strdup(demuxer->attachments, type);
-    att->data = talloc_memdup(demuxer->attachments, data, data_size);
+    struct demux_attachment *att =
+        &demuxer->attachments[demuxer->num_attachments];
+    att->name      = talloc_strdup(demuxer->attachments, name);
+    att->type      = talloc_strdup(demuxer->attachments, type);
+    att->data      = talloc_memdup(demuxer->attachments, data, data_size);
     att->data_size = data_size;
 
     return demuxer->num_attachments++;
@@ -4094,25 +4121,25 @@ static int chapter_compare(const void *p1, const void *p2)
         return 1;
     else if (c1->pts < c2->pts)
         return -1;
-    return c1->original_index > c2->original_index ? 1 :-1; // never equal
+    return c1->original_index > c2->original_index ? 1 : -1;  // never equal
 }
 
 static void demuxer_sort_chapters(demuxer_t *demuxer)
 {
     if (demuxer->num_chapters) {
         qsort(demuxer->chapters, demuxer->num_chapters,
-            sizeof(struct demux_chapter), chapter_compare);
+              sizeof(struct demux_chapter), chapter_compare);
     }
 }
 
-int demuxer_add_chapter(demuxer_t *demuxer, char *name,
-                        double pts, uint64_t demuxer_id)
+int demuxer_add_chapter(demuxer_t *demuxer, char *name, double pts,
+                        uint64_t demuxer_id)
 {
     struct demux_chapter new = {
         .original_index = demuxer->num_chapters,
-        .pts = pts,
-        .metadata = talloc_zero(demuxer, struct mp_tags),
-        .demuxer_id = demuxer_id,
+        .pts            = pts,
+        .metadata       = talloc_zero(demuxer, struct mp_tags),
+        .demuxer_id     = demuxer_id,
     };
     mp_tags_set_str(new.metadata, "TITLE", name);
     MP_TARRAY_APPEND(demuxer, demuxer->chapters, demuxer->num_chapters, new);
@@ -4140,7 +4167,7 @@ static void update_bytes_read(struct demux_internal *in)
 {
     struct demuxer *demuxer = in->d_thread;
 
-    int64_t new = in->slave_unbuffered_read_bytes;
+    int64_t new                     = in->slave_unbuffered_read_bytes;
     in->slave_unbuffered_read_bytes = 0;
 
     int64_t new_seeks = 0;
@@ -4162,16 +4189,16 @@ static void update_bytes_read(struct demux_internal *in)
 static void update_cache(struct demux_internal *in)
 {
     struct demuxer *demuxer = in->d_thread;
-    struct stream *stream = demuxer->stream;
+    struct stream *stream   = demuxer->stream;
 
-    int64_t now = mp_time_ns();
-    int64_t diff = now - in->last_speed_query;
+    int64_t now    = mp_time_ns();
+    int64_t diff   = now - in->last_speed_query;
     bool do_update = diff >= MP_TIME_S_TO_NS(1) || !in->last_speed_query;
 
     // Don't lock while querying the stream.
     mp_mutex_unlock(&in->lock);
 
-    int64_t stream_size = -1;
+    int64_t stream_size             = -1;
     struct mp_tags *stream_metadata = NULL;
     if (stream) {
         if (do_update)
@@ -4193,12 +4220,11 @@ static void update_cache(struct demux_internal *in)
     in->next_cache_update = INT64_MAX;
 
     if (do_update) {
-        uint64_t bytes = in->cache_unbuffered_read_bytes;
+        uint64_t bytes                  = in->cache_unbuffered_read_bytes;
         in->cache_unbuffered_read_bytes = 0;
-        in->last_speed_query = now;
-        double speed = bytes / (diff / (double)MP_TIME_S_TO_NS(1));
-        in->bytes_per_second = 0.5 * in->speed_query_prev_sample +
-                               0.5 * speed;
+        in->last_speed_query            = now;
+        double speed         = bytes / (diff / (double)MP_TIME_S_TO_NS(1));
+        in->bytes_per_second = 0.5 * in->speed_query_prev_sample + 0.5 * speed;
         in->speed_query_prev_sample = speed;
     }
     // The idea is to update as long as there is "activity".
@@ -4212,7 +4238,7 @@ static void dumper_close(struct demux_internal *in)
         mp_recorder_destroy(in->dumper);
     in->dumper = NULL;
     if (in->dumper_status == CONTROL_TRUE)
-        in->dumper_status = CONTROL_FALSE; // make abort equal to success
+        in->dumper_status = CONTROL_FALSE;  // make abort equal to success
 }
 
 static int range_time_compare(const void *p1, const void *p2)
@@ -4250,11 +4276,11 @@ static void dump_cache(struct demux_internal *in, double start, double end)
         mp_recorder_mark_discontinuity(in->dumper);
 
         double pts = start;
-        int flags = 0;
+        int flags  = 0;
         adjust_cache_seek_target(in, r, &pts, &flags);
 
         for (int i = 0; i < r->num_streams; i++) {
-            struct demux_queue *q = r->streams[i];
+            struct demux_queue *q   = r->streams[i];
             struct demux_stream *ds = q->ds;
 
             ds->dump_pos = find_seek_target(q, pts, flags);
@@ -4264,7 +4290,7 @@ static void dump_cache(struct demux_internal *in, double start, double end)
         // everything more complex.
         while (1) {
             struct demux_packet *next = NULL;
-            double next_dts = MP_NOPTS_VALUE;
+            double next_dts           = MP_NOPTS_VALUE;
 
             for (int i = 0; i < r->num_streams; i++) {
                 struct demux_stream *ds = r->streams[i]->ds;
@@ -4291,7 +4317,7 @@ static void dump_cache(struct demux_internal *in, double start, double end)
                     pdts < next_dts)
                 {
                     next_dts = pdts;
-                    next = dp;
+                    next     = dp;
                 }
             }
 
@@ -4299,7 +4325,7 @@ static void dump_cache(struct demux_internal *in, double start, double end)
                 break;
 
             struct demux_stream *ds = in->streams[next->stream]->ds;
-            ds->dump_pos = next->next;
+            ds->dump_pos            = next->next;
 
             struct demux_packet *dp = read_packet_from_cache(in, next);
             if (!dp) {
@@ -4349,7 +4375,7 @@ bool demux_cache_dump_set(struct demuxer *demuxer, double start, double end,
     mp_mutex_lock(&in->lock);
 
     start = MP_ADD_PTS(start, -in->ts_offset);
-    end = MP_ADD_PTS(end, -in->ts_offset);
+    end   = MP_ADD_PTS(end, -in->ts_offset);
 
     dumper_close(in);
 
@@ -4403,8 +4429,8 @@ double demux_probe_cache_dump_target(struct demuxer *demuxer, double pts,
 
     // (When determining the end, look before the keyframe at pts, so subtract
     // an arbitrary amount to round down.)
-    double seek_pts = for_end ? pts - 0.001 : pts;
-    int flags = 0;
+    double seek_pts              = for_end ? pts - 0.001 : pts;
+    int flags                    = 0;
     struct demux_cached_range *r = find_cache_seek_range(in, seek_pts, flags);
     if (r) {
         if (!for_end)
@@ -4416,7 +4442,7 @@ double demux_probe_cache_dump_target(struct demuxer *demuxer, double pts,
 
         for (int n = 0; n < in->num_streams; n++) {
             struct demux_stream *ds = in->streams[n]->ds;
-            struct demux_queue *q = r->streams[n];
+            struct demux_queue *q   = r->streams[n];
 
             struct demux_packet *dp = find_seek_target(q, pts, flags);
             if (dp) {
@@ -4424,7 +4450,8 @@ double demux_probe_cache_dump_target(struct demuxer *demuxer, double pts,
                     while (dp) {
                         double pdts = MP_PTS_OR_DEF(dp->dts, dp->pts);
 
-                        if (pdts != MP_NOPTS_VALUE && pdts >= pts && dp->keyframe)
+                        if (pdts != MP_NOPTS_VALUE && pdts >= pts &&
+                            dp->keyframe)
                             break;
 
                         t[ds->type] = MP_PTS_MAX(t[ds->type], pdts);
@@ -4434,7 +4461,7 @@ double demux_probe_cache_dump_target(struct demuxer *demuxer, double pts,
                 } else {
                     double start;
                     compute_keyframe_times(dp, &start, NULL);
-                    start = MP_PTS_MAX(start, r->seek_start);
+                    start       = MP_PTS_MAX(start, r->seek_start);
                     t[ds->type] = MP_PTS_MAX(t[ds->type], start);
                 }
             }
@@ -4482,7 +4509,7 @@ int64_t demux_get_bytes_read_hack(struct demuxer *demuxer)
 
     update_bytes_read(in);
 
-    int64_t res = in->hack_unbuffered_read_bytes;
+    int64_t res                    = in->hack_unbuffered_read_bytes;
     in->hack_unbuffered_read_bytes = 0;
     return res;
 }
@@ -4505,7 +4532,8 @@ void demux_get_bitrate_stats(struct demuxer *demuxer, double *rates)
     mp_mutex_unlock(&in->lock);
 }
 
-void demux_get_reader_state(struct demuxer *demuxer, struct demux_reader_state *r)
+void demux_get_reader_state(struct demuxer *demuxer,
+                            struct demux_reader_state *r)
 {
     struct demux_internal *in = demuxer->in;
     assert(demuxer == in->d_user);
@@ -4537,16 +4565,16 @@ void demux_get_reader_state(struct demuxer *demuxer, struct demux_reader_state *
             r->underrun |= !ds->reader_head && !ds->eof && !ds->still_image;
             any_packets |= !!ds->reader_head;
 
-            double ts_reader = ds->base_ts;
-            double ts_end = ds->queue->last_ts;
+            double ts_reader   = ds->base_ts;
+            double ts_end      = ds->queue->last_ts;
             double ts_duration = -1;
             if (ts_reader != MP_NOPTS_VALUE && ts_reader <= ts_end)
                 ts_duration = ts_end - ts_reader;
 
             struct demux_ctrl_ts_info *i = &r->ts_per_stream[ds->type];
-            i->reader = MP_PTS_MIN(i->reader, ts_reader);
-            i->end = MP_PTS_MIN(i->end, ts_end);
-            i->duration = ts_duration;
+            i->reader                    = MP_PTS_MIN(i->reader, ts_reader);
+            i->end                       = MP_PTS_MIN(i->end, ts_end);
+            i->duration                  = ts_duration;
         }
         r->fw_bytes += get_forward_buffered_bytes(ds);
     }
@@ -4566,13 +4594,13 @@ void demux_get_reader_state(struct demuxer *demuxer, struct demux_reader_state *
                 continue;
         }
         ots->duration = ts->duration;
-        ots->reader = ts->reader;
-        ots->end = ts->end;
+        ots->reader   = ts->reader;
+        ots->end      = ts->end;
     }
     r->idle = (!in->reading && !r->underrun) || r->eof;
     r->underrun &= !r->idle && in->threading;
     ots->reader = MP_ADD_PTS(ots->reader, in->ts_offset);
-    ots->end = MP_ADD_PTS(ots->end, in->ts_offset);
+    ots->end    = MP_ADD_PTS(ots->end, in->ts_offset);
     if (ots->reader != MP_NOPTS_VALUE && ots->reader <= ots->end)
         ots->duration = ots->end - ots->reader;
     if (in->seeking || !any_packets)
@@ -4580,11 +4608,10 @@ void demux_get_reader_state(struct demuxer *demuxer, struct demux_reader_state *
     for (int n = 0; n < MPMIN(in->num_ranges, MAX_SEEK_RANGES); n++) {
         struct demux_cached_range *range = in->ranges[n];
         if (range->seek_start != MP_NOPTS_VALUE) {
-            r->seek_ranges[r->num_seek_ranges++] =
-                (struct demux_seek_range){
-                    .start = MP_ADD_PTS(range->seek_start, in->ts_offset),
-                    .end = MP_ADD_PTS(range->seek_end, in->ts_offset),
-                };
+            r->seek_ranges[r->num_seek_ranges++] = (struct demux_seek_range){
+                .start = MP_ADD_PTS(range->seek_start, in->ts_offset),
+                .end   = MP_ADD_PTS(range->seek_end, in->ts_offset),
+            };
             r->bof_cached |= range->is_bof;
             r->eof_cached |= range->is_eof;
         }
@@ -4602,7 +4629,7 @@ struct demux_chapter *demux_copy_chapter_data(struct demux_chapter *c, int num)
 {
     struct demux_chapter *new = talloc_array(NULL, struct demux_chapter, num);
     for (int n = 0; n < num; n++) {
-        new[n] = c[n];
+        new[n]          = c[n];
         new[n].metadata = mp_tags_dup(new, new[n].metadata);
     }
     return new;
@@ -4633,7 +4660,6 @@ static void visit_meta(struct demuxer *demuxer, void *ctx,
     visit_tags(ctx, visit, demuxer->metadata);
 }
 
-
 static void visit_detect(void *ctx, void *ta, char **s)
 {
     char **all = ctx;
@@ -4644,17 +4670,17 @@ static void visit_detect(void *ctx, void *ta, char **s)
 
 static void visit_convert(void *ctx, void *ta, char **s)
 {
-    struct demuxer *demuxer = ctx;
+    struct demuxer *demuxer   = ctx;
     struct demux_internal *in = demuxer->in;
 
     if (!*s)
         return;
 
     bstr data = bstr0(*s);
-    bstr conv = mp_iconv_to_utf8(in->log, data, in->meta_charset,
-                                 MP_ICONV_VERBOSE);
+    bstr conv =
+        mp_iconv_to_utf8(in->log, data, in->meta_charset, MP_ICONV_VERBOSE);
     if (conv.start && conv.start != data.start) {
-        char *ns = conv.start; // 0-termination is guaranteed
+        char *ns = conv.start;  // 0-termination is guaranteed
         // (The old string might not be an alloc, but if it is, it's a talloc
         // child, and will not leak, even if it stays allocated uselessly.)
         *s = ns;
@@ -4673,7 +4699,8 @@ static void demux_convert_tags_charset(struct demuxer *demuxer)
     char *data = talloc_strdup(NULL, "");
     visit_meta(demuxer, &data, visit_detect);
 
-    in->meta_charset = (char *)mp_charset_guess(in, in->log, bstr0(data), cp, 0);
+    in->meta_charset =
+        (char *)mp_charset_guess(in, in->log, bstr0(data), cp, 0);
     if (in->meta_charset && !mp_charset_is_utf8(in->meta_charset)) {
         MP_INFO(demuxer, "Using tag charset: %s\n", in->meta_charset);
         visit_meta(demuxer, demuxer, visit_convert);
